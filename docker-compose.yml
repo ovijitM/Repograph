@@ -24,9 +24,6 @@ services:
       - NODE_ENV=production
     volumes:
       - backend_temp:/app/temp
-    networks:
-      - default
-
   frontend:
     build:
       context: ./client
@@ -41,14 +38,8 @@ services:
       - "traefik.http.routers.repograph.entrypoints=websecure"
       - "traefik.http.routers.repograph.tls.certresolver=myresolver" # Replace with your existing cert resolver name
       - "traefik.http.services.repograph.loadbalancer.server.port=80"
-    networks:
-      - default
-
-networks:
-  default:
-    name: bridge
-    external: true
 
 volumes:
   backend_temp:
+
 
