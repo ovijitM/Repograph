@@ -111,6 +111,7 @@ export default function App() {
   const handleLogout = useCallback(() => {
     localStorage.removeItem('repograph_auth_token');
     localStorage.removeItem('repograph_user');
+    localStorage.removeItem('repograph_active_repo_id');
     setToken('');
     setUser(null);
     setScreen('landing');
@@ -134,6 +135,7 @@ export default function App() {
     setScreen('dashboard');
 
     if (data.repository && data.repository._id) {
+      localStorage.setItem('repograph_active_repo_id', data.repository._id);
       fetchBranches(data.repository._id).then((branchesList) => {
         setBranches(branchesList || ['main']);
       });
@@ -184,6 +186,21 @@ export default function App() {
     if (data) applyRepoPayload(data);
     else       setScreen('landing');
   }, [loadRepo, applyRepoPayload]);
+
+  const handleBackToLanding = useCallback(() => {
+    localStorage.removeItem('repograph_active_repo_id');
+    setScreen('landing');
+  }, []);
+
+  // ── Restore active repository session on reload ────────────
+  useEffect(() => {
+    if (token) {
+      const activeRepoId = localStorage.getItem('repograph_active_repo_id');
+      if (activeRepoId) {
+        handleLoadFromHistory(activeRepoId);
+      }
+    }
+  }, [token, handleLoadFromHistory]);
 
   const handleNodeSelect = useCallback((item) => {
     const full = nodes.find(n => n.path === item.path);
@@ -268,7 +285,7 @@ export default function App() {
           apiLoading={apiLoading}
           onSendChat={handleSendChat}
           onReAnalyze={handleReAnalyze}
-          onBackToLanding={() => setScreen('landing')}
+          onBackToLanding={handleBackToLanding}
           isChatOpen={isChatOpen}
           onToggleChat={() => setIsChatOpen(prev => !prev)}
           onCloseChat={() => setIsChatOpen(false)}
