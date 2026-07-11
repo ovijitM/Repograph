@@ -44,17 +44,29 @@ class FallbackChatModel {
 }
 
 /**
- * Filters out placeholder strings from environment config,
- * returning null if the key is a template default.
+ * Filters out placeholder/invalid strings from environment config or client headers,
+ * returning null if the key is empty, undefined, or a template default.
  */
 const cleanKey = (key) => {
   if (!key) return null;
   const k = key.trim();
   const lower = k.toLowerCase();
+  if (lower === '' || lower === 'null' || lower === 'undefined') {
+    return null;
+  }
   if (lower.includes('your_') || lower.includes('key_here') || lower.includes('placeholder')) {
     return null;
   }
   return k;
+};
+
+/**
+ * Resolves the effective API key, prioritizing cleaned user/client keys over cleaned server env keys.
+ */
+const getEffectiveKey = (userKey, envKey) => {
+  const cleanedUser = cleanKey(userKey);
+  if (cleanedUser) return cleanedUser;
+  return cleanKey(envKey);
 };
 
 /**
@@ -68,10 +80,10 @@ const getLLMConfig = (userKeys) => {
   let key = null;
 
   if (provider === 'openai') {
-    key = cleanKey((userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY);
+    key = getEffectiveKey(userKeys && userKeys.openaiKey, process.env.OPENAI_API_KEY);
     if (key) hasKey = true;
   } else if (provider === 'anthropic') {
-    key = cleanKey((userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY);
+    key = getEffectiveKey(userKeys && userKeys.anthropicKey, process.env.ANTHROPIC_API_KEY);
     if (key) hasKey = true;
   }
 
@@ -88,17 +100,17 @@ const initChatModel = (userKeys, role = 'main') => {
   try {
     const modelsList = [];
 
-    const openaiKey = cleanKey((userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY);
+    const openaiKey = getEffectiveKey(userKeys && userKeys.openaiKey, process.env.OPENAI_API_KEY);
     const openaiModel = openaiKey ? new ChatOpenAI({
       openAIApiKey: openaiKey,
       modelName: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       temperature: 0.2,
     }) : null;
 
-    const anthropicKey = cleanKey((userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY);
+    const anthropicKey = getEffectiveKey(userKeys && userKeys.anthropicKey, process.env.ANTHROPIC_API_KEY);
     const anthropicModel = anthropicKey ? new ChatAnthropic({
       apiKey: anthropicKey,
-      model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest',
+      model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022',
       temperature: 0.2,
     }) : null;
 
@@ -132,7 +144,7 @@ const initChatModel = (userKeys, role = 'main') => {
  */
 const initEmbeddings = (userKeys) => {
   try {
-    const openaiKey = cleanKey((userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY);
+    const openaiKey = getEffectiveKey(userKeys && userKeys.openaiKey, process.env.OPENAI_API_KEY);
     if (openaiKey) {
       return new OpenAIEmbeddings({
         openAIApiKey: openaiKey,
