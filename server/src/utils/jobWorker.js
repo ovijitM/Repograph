@@ -5,6 +5,7 @@ import User from '../models/User.js';
 import { cloneRepository, parseGitUrl, cleanupDirectory } from './git.js';
 import { parseRepository } from './parser.js';
 import { generateRepoOverview, generateFileSummaries, indexRepositoryForChat } from './langchainHelper.js';
+import { calcRepoCost, deductCredits, addCredits } from './creditHelper.js';
 import fs from 'fs-extra';
 import path from 'path';
 
@@ -16,6 +17,7 @@ import path from 'path';
 export const processRepositoryJob = async (jobId, userKeys = null) => {
   let tempPath = null;
   let job = null;
+  let creditsCharged = 0; // track how many credits we actually charged
 
   try {
     // 1. Fetch the job from MongoDB
@@ -47,6 +49,21 @@ export const processRepositoryJob = async (jobId, userKeys = null) => {
 
     // 5. Parse structure & dependencies
     const parseResult = await parseRepository(tempPath);
+
+    // 5b. Deduct dynamic credits based on actual file count
+    const cost = calcRepoCost(parseResult.files.length);
+    const deductResult = await deductCredits(job.userId, cost);
+    if (!deductResult.ok) {
+      // Edge case: credits dropped between queueing and processing
+      job.status = 'failed';
+      job.progress = 'Analysis failed: insufficient credits.';
+      job.error = `Not enough credits to analyze this repository (requires ${cost} credits, have ${deductResult.remaining}).`;
+      job.updatedAt = new Date();
+      await job.save();
+      return;
+    }
+    creditsCharged = cost;
+    console.log(`Charged ${cost} credits to userId ${job.userId} for ${parseResult.files.length} files. Remaining: ${deductResult.remaining}`);
 
     // Read README.md if it exists
     let readmeContent = '';
@@ -137,16 +154,14 @@ export const processRepositoryJob = async (jobId, userKeys = null) => {
       job.updatedAt = new Date();
       await job.save();
 
-      // Refund 1 credit for the failed analysis
-      try {
-        const u = await User.findById(job.userId);
-        if (u) {
-          u.credits += 1;
-          await u.save();
-          console.log(`Refunded 1 credit to user ${u.email} due to background job failure.`);
+      // Refund the exact credits charged for the failed analysis
+      if (creditsCharged > 0) {
+        try {
+          const newBalance = await addCredits(job.userId, creditsCharged);
+          console.log(`Refunded ${creditsCharged} credits to userId ${job.userId} due to background job failure. New balance: ${newBalance}`);
+        } catch (refundErr) {
+          console.error('Failed to refund background credit:', refundErr);
         }
-      } catch (refundErr) {
-        console.error('Failed to refund background credit:', refundErr);
       }
     }
   } finally {

@@ -106,52 +106,63 @@ export default function DashboardHeader({
           </select>
         </div>
 
-        {user && (
-          <>
-            {/* Credit Indicator */}
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 6,
-              fontSize: 11, color: 'var(--text-primary)',
-              background: 'rgba(6, 182, 212, 0.1)', border: '1px solid rgba(6, 182, 212, 0.25)',
-              borderRadius: 7, padding: '4px 10px',
-            }}>
-              <span style={{ fontWeight: 'bold', fontSize: 10.5 }}>⚡ Credits: {user.credits ?? 0}</span>
-              <button
-                onClick={onOpenCheckout}
-                style={{
-                  background: 'var(--color-secondary)', border: 'none',
-                  color: '#080721', fontSize: 8.5, fontWeight: '800',
-                  padding: '2px 6px', borderRadius: 4, cursor: 'pointer',
-                  transition: 'opacity 0.18s'
-                }}
-                onMouseEnter={e => e.currentTarget.style.opacity = '0.9'}
-                onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-              >
-                Buy
-              </button>
-            </div>
+        {user && (() => {
+            const credits = user.credits ?? 0;
+            const isLow = credits > 0 && credits < 100;
+            const isEmpty = credits <= 0;
+            const creditColor  = isEmpty ? '#fca5a5' : isLow ? '#fde68a' : '#67e8f9';
+            const creditBg     = isEmpty ? 'rgba(244,63,94,0.10)' : isLow ? 'rgba(245,158,11,0.10)' : 'rgba(6,182,212,0.10)';
+            const creditBorder = isEmpty ? 'rgba(244,63,94,0.3)' : isLow ? 'rgba(245,158,11,0.3)' : 'rgba(6,182,212,0.25)';
+            return (
+              <>
+                {/* Credit Indicator */}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  fontSize: 11, color: creditColor,
+                  background: creditBg, border: `1px solid ${creditBorder}`,
+                  borderRadius: 7, padding: '4px 10px',
+                }}>
+                  <span style={{ fontWeight: 'bold', fontSize: 10.5 }}>
+                    {isEmpty ? '⚠️' : '⚡'} {credits.toLocaleString()} credits
+                  </span>
+                  <button
+                    onClick={onOpenCheckout}
+                    style={{
+                      background: isEmpty ? '#ef4444' : 'var(--color-secondary)',
+                      border: 'none', color: '#fff',
+                      fontSize: 8.5, fontWeight: '800',
+                      padding: '2px 6px', borderRadius: 4, cursor: 'pointer',
+                      transition: 'opacity 0.18s',
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.opacity = '0.85'}
+                    onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                  >
+                    {isEmpty ? 'Top Up!' : 'Buy'}
+                  </button>
+                </div>
 
-            <div style={{
-              display: 'flex', alignItems: 'center', gap: 8,
-              fontSize: 11, color: 'var(--text-secondary)',
-              background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-glass)',
-              borderRadius: 7, padding: '4px 10px',
-            }}>
-              <span style={{ fontSize: 10.5 }}>👤 {user.email}</span>
-              <div style={{ width: 1, height: 12, background: 'var(--border-glass)' }} />
-              <button
-                onClick={onLogout}
-                style={{
-                  background: 'none', border: 'none', padding: 0,
-                  color: '#fca5a5', fontSize: 10.5, fontWeight: 600,
-                  cursor: 'pointer', textDecoration: 'underline'
-                }}
-              >
-                Log Out
-              </button>
-            </div>
-          </>
-        )}
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  fontSize: 11, color: 'var(--text-secondary)',
+                  background: 'rgba(255,255,255,0.04)', border: '1px solid var(--border-glass)',
+                  borderRadius: 7, padding: '4px 10px',
+                }}>
+                  <span style={{ fontSize: 10.5 }}>👤 {user.email}</span>
+                  <div style={{ width: 1, height: 12, background: 'var(--border-glass)' }} />
+                  <button
+                    onClick={onLogout}
+                    style={{
+                      background: 'none', border: 'none', padding: 0,
+                      color: '#fca5a5', fontSize: 10.5, fontWeight: 600,
+                      cursor: 'pointer', textDecoration: 'underline'
+                    }}
+                  >
+                    Log Out
+                  </button>
+                </div>
+              </>
+            );
+          })()}
 
         <ThemeToggle theme={theme} onToggle={onToggleTheme} />
 

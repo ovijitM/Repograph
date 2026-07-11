@@ -6,6 +6,7 @@ import { cloneRepository, parseGitUrl, cleanupDirectory, getRemoteBranches } fro
 import { parseRepository } from '../utils/parser.js';
 import { generateRepoOverview, generateFileSummaries, indexRepositoryForChat } from '../utils/langchainHelper.js';
 import { processRepositoryJob } from '../utils/jobWorker.js';
+import { calcRepoCost, deductCredits } from '../utils/creditHelper.js';
 import fs from 'fs-extra';
 import path from 'path';
 import {
@@ -65,20 +66,21 @@ export const analyzeRepo = async (req, res) => {
     }
 
     // Verify user credits before proceeding (only for new/forced analysis when DB is available)
+    // Credit cost is determined AFTER parsing (so we know totalFiles).
+    // We do a preliminary check that user has at least the minimum cost (50).
     let user = null;
+    let creditsCharged = 0;
     if (isDbConnected()) {
       user = await User.findById(req.userId);
       if (!user) {
         return res.status(404).json({ error: 'User account not found.' });
       }
-      if (user.credits <= 0) {
-        return res.status(403).json({ error: 'Insufficient credits. You have 0 credits remaining. Please buy more credits.' });
+      if ((user.credits || 0) < 50) {
+        return res.status(403).json({
+          error: `Insufficient credits. You have ${user.credits || 0} credits remaining. Please top up to analyze repositories.`,
+          creditsRemaining: user.credits || 0
+        });
       }
-
-      // Deduct credit
-      user.credits -= 1;
-      await user.save();
-      console.log(`Charged 1 credit to user ${user.email}. Remaining credits: ${user.credits}`);
     }
 
     const userKeys = {
@@ -106,6 +108,7 @@ export const analyzeRepo = async (req, res) => {
       });
 
       // Respond with 202 Accepted, the jobId, and updated credit count
+      // Note: actual credit deduction happens inside processRepositoryJob once totalFiles is known
       return res.status(202).json({
         message: 'Repository analysis queued successfully',
         jobId: job._id.toString(),

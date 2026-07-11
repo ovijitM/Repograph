@@ -133,8 +133,14 @@ export function useRepoApi() {
         body:    JSON.stringify({ question, chatHistory }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to get chat response');
-      return data.answer;
+      if (!res.ok) {
+        const err = new Error(data.error || 'Failed to get chat response');
+        err.creditLimitReached = !!data.creditLimitReached;
+        err.creditsRemaining   = data.creditsRemaining;
+        throw err;
+      }
+      // Return full payload so App.jsx can sync creditsRemaining
+      return { answer: data.answer, creditsRemaining: data.creditsRemaining };
     } catch (err) {
       throw err; // caller handles UI message
     } finally {

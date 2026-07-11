@@ -29,6 +29,7 @@ export default function App() {
   });
   const [showAuth, setShowAuth] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [paymentToast, setPaymentToast] = useState(''); // 'success' | 'cancelled' | ''
 
   // ── Theme ──────────────────────────────────────────────────
   const { theme, toggle: toggleTheme } = useTheme();
@@ -74,6 +75,31 @@ export default function App() {
       setHistoryRepos([]);
     }
   }, [fetchHistory, token]);
+
+  // ── Handle Stripe payment return (?payment=success/cancelled) ─
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const payment = params.get('payment');
+    if (payment === 'success' || payment === 'cancelled') {
+      setPaymentToast(payment);
+      // Remove query param from URL without page reload
+      window.history.replaceState({}, '', window.location.pathname);
+      // Refresh credit balance from server
+      if (payment === 'success' && token) {
+        fetch('/api/auth/me', { headers: { 'Authorization': `Bearer ${token}` } })
+          .then(r => r.json())
+          .then(profile => {
+            setUser(prev => prev ? { ...prev, credits: profile.credits } : null);
+            const localUser = JSON.parse(localStorage.getItem('repograph_user') || '{}');
+            localUser.credits = profile.credits;
+            localStorage.setItem('repograph_user', JSON.stringify(localUser));
+          })
+          .catch(console.error);
+      }
+      // Auto-dismiss toast after 5s
+      setTimeout(() => setPaymentToast(''), 5000);
+    }
+  }, [token]);
 
   const handleAuthSuccess = useCallback((newToken, newUser) => {
     localStorage.setItem('repograph_auth_token', newToken);
@@ -168,10 +194,26 @@ export default function App() {
     if (!text.trim() || chatLoading || !activeRepo) return;
     setChatMessages(prev => [...prev, { role: 'user', content: text }]);
     try {
-      const answer = await sendChatMessage(activeRepo._id, text, chatMessages);
+      const result = await sendChatMessage(activeRepo._id, text, chatMessages);
+      // result may be { answer, creditsRemaining } or just a string
+      const answer = typeof result === 'string' ? result : result?.answer;
+      const creditsRemaining = result?.creditsRemaining;
       setChatMessages(prev => [...prev, { role: 'assistant', content: answer }]);
+      // Sync credit balance if server returned updated count
+      if (creditsRemaining !== undefined) {
+        setUser(prev => prev ? { ...prev, credits: creditsRemaining } : null);
+        const localUser = JSON.parse(localStorage.getItem('repograph_user') || '{}');
+        localUser.credits = creditsRemaining;
+        localStorage.setItem('repograph_user', JSON.stringify(localUser));
+      }
     } catch (err) {
-      setChatMessages(prev => [...prev, { role: 'assistant', content: `Error: ${err.message}` }]);
+      const msg = err.message || 'Unknown error';
+      // Show insufficient credit error prominently
+      if (err.creditLimitReached) {
+        setChatMessages(prev => [...prev, { role: 'assistant', content: `⚡ **Out of credits.** ${msg}` }]);
+      } else {
+        setChatMessages(prev => [...prev, { role: 'assistant', content: `Error: ${msg}` }]);
+      }
     }
   }, [activeRepo, chatLoading, chatMessages, sendChatMessage]);
 
@@ -238,7 +280,23 @@ export default function App() {
       )}
 
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} theme={theme} />
-      <CheckoutModal isOpen={isCheckoutOpen} onClose={() => setIsCheckoutOpen(false)} theme={theme} onPurchaseSuccess={handlePurchaseSuccess} />
+      <CheckoutModal isOpen={isCheckoutOpen} onClose={() => setIsCheckoutOpen(false)} theme={theme} />
+
+      {/* Payment return toast */}
+      {paymentToast && (
+        <div style={{
+          position: 'fixed', bottom: 24, left: '50%', transform: 'translateX(-50%)',
+          zIndex: 999, padding: '10px 20px', borderRadius: '12px', fontSize: '13px', fontWeight: 700,
+          display: 'flex', alignItems: 'center', gap: 8, boxShadow: '0 8px 30px rgba(0,0,0,0.4)',
+          background: paymentToast === 'success' ? 'rgba(16,185,129,0.15)' : 'rgba(244,63,94,0.12)',
+          border: `1px solid ${paymentToast === 'success' ? 'rgba(16,185,129,0.35)' : 'rgba(244,63,94,0.3)'}`,
+          color: paymentToast === 'success' ? '#6ee7b7' : '#fca5a5',
+          backdropFilter: 'blur(12px)',
+          cursor: 'pointer',
+        }} onClick={() => setPaymentToast('')}>
+          {paymentToast === 'success' ? '✅ Payment successful! Credits added to your account.' : '❌ Payment cancelled. No charges made.'}
+        </div>
+      )}
 
     </div>
   );

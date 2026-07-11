@@ -1,8 +1,11 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import Stripe from 'stripe';
 import User from '../models/User.js';
+import { addCredits } from '../utils/creditHelper.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'repograph-secret-key-123';
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null;
 
 /**
  * Register a new user account.
@@ -113,33 +116,86 @@ export const me = async (req, res) => {
 };
 
 /**
- * Purchase credits (mock flow).
- * POST /api/auth/buy-credits
+ * Create a Stripe Checkout Session for credit top-up.
+ * POST /api/auth/create-checkout-session
  */
-export const buyCredits = async (req, res) => {
-  const { amount } = req.body;
+export const createCheckoutSession = async (req, res) => {
+  if (!stripe) {
+    return res.status(503).json({ error: 'Payment service is not configured on this server.' });
+  }
 
-  if (!amount || typeof amount !== 'number' || amount <= 0) {
-    return res.status(400).json({ error: 'Invalid amount parameters.' });
+  const { pack } = req.body; // 'starter' | 'popular' | 'pro'
+
+  const packConfig = {
+    starter: { credits: 1000,  priceId: process.env.STRIPE_PRICE_STARTER },
+    popular: { credits: 3000,  priceId: process.env.STRIPE_PRICE_POPULAR },
+    pro:     { credits: 10000, priceId: process.env.STRIPE_PRICE_PRO     },
+  };
+
+  const selected = packConfig[pack];
+  if (!selected || !selected.priceId) {
+    return res.status(400).json({ error: 'Invalid credit pack selected. Please configure Stripe Price IDs.' });
   }
 
   try {
     const user = await User.findById(req.userId);
-    if (!user) {
-      return res.status(404).json({ error: 'User not found.' });
-    }
+    if (!user) return res.status(404).json({ error: 'User not found.' });
 
-    user.credits = (user.credits || 0) + amount;
-    await user.save();
+    const appUrl = process.env.APP_URL || 'https://repograph.ovijit.com';
 
-    console.log(`Mock Transaction: User ${user.email} purchased ${amount} credits. New balance: ${user.credits}`);
-
-    return res.status(200).json({
-      message: `Successfully purchased ${amount} credits!`,
-      credits: user.credits,
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode: 'payment',
+      line_items: [{ price: selected.priceId, quantity: 1 }],
+      metadata: {
+        userId: req.userId.toString(),
+        creditsToAdd: selected.credits.toString(),
+        pack,
+      },
+      success_url: `${appUrl}?payment=success`,
+      cancel_url:  `${appUrl}?payment=cancelled`,
+      customer_email: user.email,
     });
+
+    return res.status(200).json({ url: session.url });
   } catch (error) {
-    console.error('Buy credits error:', error);
+    console.error('Stripe checkout session error:', error);
     return res.status(500).json({ error: error.message });
   }
+};
+
+/**
+ * Handle Stripe webhook events (raw body required).
+ * POST /api/auth/stripe-webhook
+ */
+export const stripeWebhook = async (req, res) => {
+  if (!stripe) {
+    return res.status(503).json({ error: 'Payment service not configured.' });
+  }
+
+  const sig = req.headers['stripe-signature'];
+  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+
+  let event;
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
+  } catch (err) {
+    console.error('Webhook signature verification failed:', err.message);
+    return res.status(400).json({ error: `Webhook Error: ${err.message}` });
+  }
+
+  if (event.type === 'checkout.session.completed') {
+    const session = event.data.object;
+    const { userId, creditsToAdd } = session.metadata;
+
+    try {
+      const newBalance = await addCredits(userId, parseInt(creditsToAdd, 10));
+      console.log(`Stripe payment complete: +${creditsToAdd} credits to user ${userId}. New balance: ${newBalance}`);
+    } catch (err) {
+      console.error('Failed to add credits after payment:', err);
+      return res.status(500).json({ error: 'Failed to update credits.' });
+    }
+  }
+
+  return res.status(200).json({ received: true });
 };
