@@ -2,19 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { X, Eye, EyeOff, Check, ShieldAlert, Key, HelpCircle } from 'lucide-react';
 
 export default function SettingsModal({ isOpen, onClose, theme }) {
-  const [provider, setProvider] = useState('anthropic');
-  const [geminiKey, setGeminiKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
   const [anthropicKey, setAnthropicKey] = useState('');
-  const [showGemini, setShowGemini] = useState(false);
   const [showOpenai, setShowOpenai] = useState(false);
   const [showAnthropic, setShowAnthropic] = useState(false);
   const [saveStatus, setSaveStatus] = useState(''); // '', 'saved'
 
   useEffect(() => {
     if (isOpen) {
-      setProvider(localStorage.getItem('repograph_llm_provider') || 'anthropic');
-      setGeminiKey(localStorage.getItem('repograph_gemini_api_key') || '');
       setOpenaiKey(localStorage.getItem('repograph_openai_api_key') || '');
       setAnthropicKey(localStorage.getItem('repograph_anthropic_api_key') || '');
       setSaveStatus('');
@@ -24,10 +19,10 @@ export default function SettingsModal({ isOpen, onClose, theme }) {
   if (!isOpen) return null;
 
   const handleSave = () => {
-    localStorage.setItem('repograph_llm_provider', provider);
-    localStorage.setItem('repograph_gemini_api_key', geminiKey.trim());
     localStorage.setItem('repograph_openai_api_key', openaiKey.trim());
     localStorage.setItem('repograph_anthropic_api_key', anthropicKey.trim());
+    localStorage.removeItem('repograph_gemini_api_key');
+    localStorage.removeItem('repograph_llm_provider');
     
     setSaveStatus('saved');
     setTimeout(() => {
@@ -206,255 +201,111 @@ export default function SettingsModal({ isOpen, onClose, theme }) {
 
           {/* Form Content */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            {/* Preferred Model Provider */}
+            {/* Anthropic API Key Input */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              <label style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                AI Provider
-              </label>
-              <div style={{ display: 'flex', gap: '10px' }}>
-                {['google', 'openai', 'anthropic'].map((p) => (
-                  <button
-                    key={p}
-                    onClick={() => setProvider(p)}
-                    className={provider === p ? 'btn-provider-active' : 'btn-provider-inactive'}
-                    style={{
-                      flex: 1,
-                      height: '38px',
-                      borderRadius: '12px',
-                      fontSize: '12px',
-                      fontWeight: '700',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    {p === 'google' ? 'Google Gemini' : p === 'openai' ? 'OpenAI GPT' : 'Anthropic Claude'}
-                  </button>
-                ))}
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                  Anthropic API Key (Claude)
+                </label>
+                <a 
+                  href="https://console.anthropic.com/" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  style={{
+                    fontSize: '10px',
+                    color: 'var(--color-secondary)',
+                    textDecoration: 'underline',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <HelpCircle size={12} /> Get API Key
+                </a>
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showAnthropic ? 'text' : 'password'}
+                  value={anthropicKey}
+                  onChange={(e) => setAnthropicKey(e.target.value)}
+                  placeholder="sk-ant-... (used for repo overview & file summaries)"
+                  className="input-credential"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAnthropic(!showAnthropic)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'rgba(255, 255, 255, 0.40)',
+                    cursor: 'pointer',
+                    border: 'none',
+                    background: 'none',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {showAnthropic ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
               </div>
             </div>
 
-            {/* Gemini API Key Input */}
-            {provider === 'google' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <label style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                    Gemini API Key
-                  </label>
-                  <a 
-                    href="https://aistudio.google.com/" 
-                    target="_blank" 
-                    rel="noreferrer"
-                    style={{
-                      fontSize: '10px',
-                      color: 'var(--color-secondary)',
-                      textDecoration: 'underline',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <HelpCircle size={12} /> Get API Key
-                  </a>
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showGemini ? 'text' : 'password'}
-                    value={geminiKey}
-                    onChange={(e) => setGeminiKey(e.target.value)}
-                    placeholder="AIzaSy..."
-                    className="input-credential"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowGemini(!showGemini)}
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'rgba(255, 255, 255, 0.40)',
-                      cursor: 'pointer',
-                      border: 'none',
-                      background: 'none',
-                      padding: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    {showGemini ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* Optional Fallback Claude API Key Input when Gemini is Selected */}
-            {provider === 'google' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <label style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                    Fallback Claude API Key (Optional)
-                  </label>
-                  <a 
-                    href="https://console.anthropic.com/" 
-                    target="_blank" 
-                    rel="noreferrer"
-                    style={{
-                      fontSize: '10px',
-                      color: 'var(--color-secondary)',
-                      textDecoration: 'underline',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <HelpCircle size={12} /> Get API Key
-                  </a>
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showAnthropic ? 'text' : 'password'}
-                    value={anthropicKey}
-                    onChange={(e) => setAnthropicKey(e.target.value)}
-                    placeholder="sk-ant-... (used as fallback if Gemini fails)"
-                    className="input-credential"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowAnthropic(!showAnthropic)}
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'rgba(255, 255, 255, 0.40)',
-                      cursor: 'pointer',
-                      border: 'none',
-                      background: 'none',
-                      padding: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    {showAnthropic ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
-              </div>
-            )}
-
             {/* OpenAI API Key Input */}
-            {provider === 'openai' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <label style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                    OpenAI API Key
-                  </label>
-                  <a 
-                    href="https://platform.openai.com/api-keys" 
-                    target="_blank" 
-                    rel="noreferrer"
-                    style={{
-                      fontSize: '10px',
-                      color: 'var(--color-secondary)',
-                      textDecoration: 'underline',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <HelpCircle size={12} /> Get API Key
-                  </a>
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showOpenai ? 'text' : 'password'}
-                    value={openaiKey}
-                    onChange={(e) => setOpenaiKey(e.target.value)}
-                    placeholder="sk-proj-..."
-                    className="input-credential"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowOpenai(!showOpenai)}
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'rgba(255, 255, 255, 0.40)',
-                      cursor: 'pointer',
-                      border: 'none',
-                      background: 'none',
-                      padding: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    {showOpenai ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <label style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                  OpenAI API Key (ChatGPT)
+                </label>
+                <a 
+                  href="https://platform.openai.com/api-keys" 
+                  target="_blank" 
+                  rel="noreferrer"
+                  style={{
+                    fontSize: '10px',
+                    color: 'var(--color-secondary)',
+                    textDecoration: 'underline',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px'
+                  }}
+                >
+                  <HelpCircle size={12} /> Get API Key
+                </a>
               </div>
-            )}
-
-            {/* Anthropic API Key Input */}
-            {provider === 'anthropic' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <label style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                    Anthropic API Key
-                  </label>
-                  <a 
-                    href="https://console.anthropic.com/" 
-                    target="_blank" 
-                    rel="noreferrer"
-                    style={{
-                      fontSize: '10px',
-                      color: 'var(--color-secondary)',
-                      textDecoration: 'underline',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px'
-                    }}
-                  >
-                    <HelpCircle size={12} /> Get API Key
-                  </a>
-                </div>
-                <div style={{ position: 'relative' }}>
-                  <input
-                    type={showAnthropic ? 'text' : 'password'}
-                    value={anthropicKey}
-                    onChange={(e) => setAnthropicKey(e.target.value)}
-                    placeholder="sk-ant-..."
-                    className="input-credential"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowAnthropic(!showAnthropic)}
-                    style={{
-                      position: 'absolute',
-                      right: '12px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: 'rgba(255, 255, 255, 0.40)',
-                      cursor: 'pointer',
-                      border: 'none',
-                      background: 'none',
-                      padding: 0,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center'
-                    }}
-                  >
-                    {showAnthropic ? <EyeOff size={15} /> : <Eye size={15} />}
-                  </button>
-                </div>
+              <div style={{ position: 'relative' }}>
+                <input
+                  type={showOpenai ? 'text' : 'password'}
+                  value={openaiKey}
+                  onChange={(e) => setOpenaiKey(e.target.value)}
+                  placeholder="sk-proj-... (used for codebase chatbot)"
+                  className="input-credential"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowOpenai(!showOpenai)}
+                  style={{
+                    position: 'absolute',
+                    right: '12px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    color: 'rgba(255, 255, 255, 0.40)',
+                    cursor: 'pointer',
+                    border: 'none',
+                    background: 'none',
+                    padding: 0,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {showOpenai ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Action buttons */}
