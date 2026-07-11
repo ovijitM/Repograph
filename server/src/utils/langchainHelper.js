@@ -112,8 +112,7 @@ const initChatModel = (userKeys, role = 'main') => {
     const anthropicModel = anthropicKey ? new ChatAnthropic({
       apiKey: anthropicKey,
       model: anthropicModelName,
-      temperature: 0.2,
-      topP: 1, // Override LangChain's -1 default for custom models
+      topP: 1, // Use topP instead of temperature to prevent LangChain -1 default
     }) : null;
 
     if (role === 'chat') {
