@@ -112,8 +112,18 @@ const initChatModel = (userKeys, role = 'main') => {
     const anthropicModel = anthropicKey ? new ChatAnthropic({
       apiKey: anthropicKey,
       model: anthropicModelName,
-      topP: 1, // Use topP instead of temperature to prevent LangChain -1 default
+      temperature: 0.2,
     }) : null;
+
+    if (anthropicModel) {
+      const originalParams = anthropicModel.invocationParams.bind(anthropicModel);
+      anthropicModel.invocationParams = function(options) {
+        const params = originalParams(options);
+        if (params.top_p === -1) delete params.top_p;
+        if (params.top_k === -1) delete params.top_k;
+        return params;
+      };
+    }
 
     if (role === 'chat') {
       // ChatGPT is main, Claude is fallback
