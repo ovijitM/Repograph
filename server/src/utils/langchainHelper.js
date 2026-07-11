@@ -108,7 +108,7 @@ const initChatModel = (userKeys, role = 'main') => {
     }) : null;
 
     const anthropicKey = getEffectiveKey(userKeys && userKeys.anthropicKey, process.env.ANTHROPIC_API_KEY);
-    const anthropicModelName = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest';
+    const anthropicModelName = process.env.ANTHROPIC_MODEL || 'claude-sonnet-4-6';
     const anthropicModel = anthropicKey ? new ChatAnthropic({
       apiKey: anthropicKey,
       model: anthropicModelName,
