@@ -7,10 +7,10 @@ RepoGraph is a modern, interactive web application designed to analyze GitHub re
 ## 📷 Screenshots
 
 ### Interactive Dependency Graph & AI Chat
-![RepoGraph Dashboard and Chat Assistant](assets/dashboard-chat.png)
+![RepoGraph Dashboard and Chat Assistant](https://kommodo.ai/i/NZXxq3L226OXRQiup7h1)
 
 ### File Analysis & Code Explorer
-![RepoGraph File Inspection Detail View](assets/file-details.png)
+![RepoGraph File Inspection Detail View](https://kommodo.ai/i/z8rTOW1VSnEXpsfIFOQC)
 
 ---
 
