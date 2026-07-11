@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import Stripe from 'stripe';
 import User from '../models/User.js';
+import Payment from '../models/Payment.js';
 import { addCredits } from '../utils/creditHelper.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'repograph-secret-key-123';
@@ -45,6 +46,7 @@ export const register = async (req, res) => {
         id: user._id,
         email: user.email,
         credits: user.credits,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -86,6 +88,7 @@ export const login = async (req, res) => {
         id: user._id,
         email: user.email,
         credits: user.credits,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -108,6 +111,7 @@ export const me = async (req, res) => {
       id: user._id,
       email: user.email,
       credits: user.credits,
+      role: user.role,
     });
   } catch (error) {
     console.error('Fetch profile error:', error);
@@ -186,14 +190,29 @@ export const stripeWebhook = async (req, res) => {
 
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object;
-    const { userId, creditsToAdd } = session.metadata;
+    const { userId, creditsToAdd, pack } = session.metadata;
 
     try {
       const newBalance = await addCredits(userId, parseInt(creditsToAdd, 10));
       console.log(`Stripe payment complete: +${creditsToAdd} credits to user ${userId}. New balance: ${newBalance}`);
+
+      // Record payment transaction
+      const amountMap = { starter: 5, popular: 12, pro: 35 };
+      const amount = amountMap[pack] || (session.amount_total ? session.amount_total / 100 : 0);
+      
+      const paymentLog = new Payment({
+        userId,
+        email: session.customer_details?.email || session.customer_email || 'unknown@stripe.com',
+        amount,
+        credits: parseInt(creditsToAdd, 10),
+        pack: pack || 'custom',
+        stripeSessionId: session.id
+      });
+      await paymentLog.save();
+      console.log(`Saved payment record for user ${userId}: $${amount}`);
     } catch (err) {
-      console.error('Failed to add credits after payment:', err);
-      return res.status(500).json({ error: 'Failed to update credits.' });
+      console.error('Failed to process completed checkout session webhook:', err);
+      return res.status(500).json({ error: 'Failed to update credits or save payment record.' });
     }
   }
 

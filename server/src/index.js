@@ -6,6 +6,7 @@ import fs from 'fs-extra';
 import { connectDB } from './config/db.js';
 import apiRouter from './routes/api.js';
 import authRouter from './routes/authRoutes.js';
+import adminRouter from './routes/adminRoutes.js';
 
 // Load Environment variables
 dotenv.config();
@@ -23,6 +24,7 @@ app.use(express.json());
 
 // API Routes
 app.use('/api/auth', authRouter);
+app.use('/api/admin', adminRouter);
 app.use('/api', apiRouter);
 
 // Basic health check route

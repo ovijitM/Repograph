@@ -16,6 +16,7 @@ import SettingsModal   from './components/SettingsModal';
 import AuthPage        from './pages/AuthPage';
 import MarketingPage   from './pages/MarketingPage';
 import CheckoutModal   from './components/CheckoutModal';
+import AdminDashboardPage from './pages/AdminDashboardPage';
 
 export default function App() {
   // ── Authentication state ──────────────────────────────────
@@ -30,6 +31,22 @@ export default function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentToast, setPaymentToast] = useState(''); // 'success' | 'cancelled' | ''
+  const [isAdminRoute, setIsAdminRoute] = useState(
+    window.location.pathname === '/admin' || window.location.hash === '#/admin'
+  );
+
+  // ── Route listener for path changes ────────────────────────
+  useEffect(() => {
+    const handleUrlChange = () => {
+      setIsAdminRoute(window.location.pathname === '/admin' || window.location.hash === '#/admin');
+    };
+    window.addEventListener('popstate', handleUrlChange);
+    window.addEventListener('hashchange', handleUrlChange);
+    return () => {
+      window.removeEventListener('popstate', handleUrlChange);
+      window.removeEventListener('hashchange', handleUrlChange);
+    };
+  }, []);
 
   // ── Theme ──────────────────────────────────────────────────
   const { theme, toggle: toggleTheme } = useTheme();
@@ -243,6 +260,34 @@ export default function App() {
   }, [activeRepo, handleAnalyze]);
 
   // ── Render ─────────────────────────────────────────────────
+  if (isAdminRoute) {
+    if (!token) {
+      return <AuthPage onAuthSuccess={handleAuthSuccess} onBack={() => {
+        window.history.replaceState({}, '', '/');
+        setIsAdminRoute(false);
+      }} />;
+    }
+    if (user?.role !== 'admin') {
+      return (
+        <div style={{
+          width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column',
+          alignItems: 'center', justifyContent: 'center', background: 'var(--graph-bg)',
+          color: 'var(--text-primary)', fontFamily: 'var(--font-body)', gap: 12
+        }}>
+          <h2>🔒 Access Denied</h2>
+          <p style={{ color: 'var(--text-muted)', fontSize: 13 }}>Admin credentials required.</p>
+          <button onClick={handleLogout} style={{
+            padding: '10px 20px', background: 'var(--color-primary)', border: 'none',
+            color: 'white', borderRadius: 8, cursor: 'pointer', fontWeight: 600, fontSize: 13
+          }}>
+            Log In with another account
+          </button>
+        </div>
+      );
+    }
+    return <AdminDashboardPage theme={theme} onLogout={handleLogout} />;
+  }
+
   if (!token) {
     if (showAuth) {
       return <AuthPage onAuthSuccess={handleAuthSuccess} onBack={() => setShowAuth(false)} />;

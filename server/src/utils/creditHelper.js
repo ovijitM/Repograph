@@ -48,3 +48,27 @@ export const addCredits = async (userId, amount) => {
   );
   return user ? user.credits : 0;
 };
+
+/**
+ * Log usage events to the database for administrative analysis
+ */
+export const logUsage = async (userId, type, creditsDeducted, details = '') => {
+  try {
+    const User = (await import('../models/User.js')).default;
+    const UsageLog = (await import('../models/UsageLog.js')).default;
+    
+    const user = await User.findById(userId);
+    if (!user) return;
+
+    const logEntry = new UsageLog({
+      userId,
+      email: user.email,
+      type,
+      creditsDeducted,
+      details
+    });
+    await logEntry.save();
+  } catch (error) {
+    console.error('Failed to save usage log:', error);
+  }
+};

@@ -5,7 +5,7 @@ import User from '../models/User.js';
 import { cloneRepository, parseGitUrl, cleanupDirectory } from './git.js';
 import { parseRepository } from './parser.js';
 import { generateRepoOverview, generateFileSummaries, indexRepositoryForChat } from './langchainHelper.js';
-import { calcRepoCost, deductCredits, addCredits } from './creditHelper.js';
+import { calcRepoCost, deductCredits, addCredits, logUsage } from './creditHelper.js';
 import fs from 'fs-extra';
 import path from 'path';
 
@@ -143,6 +143,11 @@ export const processRepositoryJob = async (jobId, userKeys = null) => {
     job.repositoryId = repoObj._id;
     job.updatedAt = new Date();
     await job.save();
+
+    // Log analysis usage to DB
+    logUsage(job.userId, 'analyze', creditsCharged, `Analyzed repository '${owner}/${name}' (${parseResult.files.length} files)`).catch(err => {
+      console.error('Failed to write analysis usage log:', err);
+    });
 
     console.log(`Job ${jobId} successfully completed parsing for ${repoUrl}`);
   } catch (error) {

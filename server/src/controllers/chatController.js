@@ -2,7 +2,7 @@ import FileNode from '../models/FileNode.js';
 import Repository from '../models/Repository.js';
 import { queryRepositoryChat } from '../utils/langchainHelper.js';
 import { isDbConnected, getFileNodesFallback } from '../utils/dbFallback.js';
-import { deductCredits, CHAT_COST } from '../utils/creditHelper.js';
+import { deductCredits, CHAT_COST, logUsage } from '../utils/creditHelper.js';
 
 /**
  * Controller to handle conversational queries about the repository.
@@ -46,6 +46,11 @@ export const chatRepo = async (req, res) => {
 
       // Perform RAG query
       const answer = await queryRepositoryChat(id, fileNodes, question, chatHistory || [], userKeys);
+
+      // Log usage asynchronously
+      logUsage(req.userId, 'chat', CHAT_COST, `Chatted in repo '${repo.name}'`).catch(err => {
+        console.error('Failed to write chat usage log:', err);
+      });
 
       return res.status(200).json({ answer, creditsRemaining: deductResult.remaining });
     } else {
