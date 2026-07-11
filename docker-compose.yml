@@ -34,7 +34,7 @@ services:
       - backend
     labels:
       - "traefik.enable=true"
-      - "traefik.http.routers.repograph.rule=Host(`repograph.yourdomain.com`)"
+      - "traefik.http.routers.repograph.rule=Host(`${APP_DOMAIN:-repograph.yourdomain.com}`)"
       - "traefik.http.routers.repograph.entrypoints=websecure"
       - "traefik.http.routers.repograph.tls.certresolver=myresolver" # Replace with your existing cert resolver name
       - "traefik.http.services.repograph.loadbalancer.server.port=80"
