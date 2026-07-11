@@ -108,45 +108,20 @@ const initChatModel = (userKeys, role = 'main') => {
     }) : null;
 
     const anthropicKey = getEffectiveKey(userKeys && userKeys.anthropicKey, process.env.ANTHROPIC_API_KEY);
-    const anthropicModelName = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
-    
-    let anthropicModel = null;
-    let anthropicFallbackModel = null;
-
-    if (anthropicKey) {
-      if (anthropicModelName === 'claude-3-5-sonnet-latest' || anthropicModelName === 'claude-3-5-sonnet-20241022') {
-        anthropicModel = new ChatAnthropic({
-          apiKey: anthropicKey,
-          model: 'claude-3-5-sonnet-20241022',
-          temperature: 0.2,
-        });
-        anthropicFallbackModel = new ChatAnthropic({
-          apiKey: anthropicKey,
-          model: 'claude-3-5-sonnet-20240620',
-          temperature: 0.2,
-        });
-      } else {
-        anthropicModel = new ChatAnthropic({
-          apiKey: anthropicKey,
-          model: anthropicModelName,
-          temperature: 0.2,
-        });
-      }
-    }
+    const anthropicModelName = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest';
+    const anthropicModel = anthropicKey ? new ChatAnthropic({
+      apiKey: anthropicKey,
+      model: anthropicModelName,
+      temperature: 0.2,
+    }) : null;
 
     if (role === 'chat') {
       // ChatGPT is main, Claude is fallback
       modelsList.push({ model: openaiModel, name: 'ChatGPT' });
       modelsList.push({ model: anthropicModel, name: 'Claude' });
-      if (anthropicFallbackModel) {
-        modelsList.push({ model: anthropicFallbackModel, name: 'Claude (v1 fallback)' });
-      }
     } else {
       // Claude is main, ChatGPT is fallback
       modelsList.push({ model: anthropicModel, name: 'Claude' });
-      if (anthropicFallbackModel) {
-        modelsList.push({ model: anthropicFallbackModel, name: 'Claude (v1 fallback)' });
-      }
       modelsList.push({ model: openaiModel, name: 'ChatGPT' });
     }
 
