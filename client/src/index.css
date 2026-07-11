@@ -700,3 +700,52 @@ input[type="text"]:focus {
   border-color: rgba(124,58,237,0.25) !important;
   box-shadow: 0 32px 80px rgba(0,0,0,0.12), 0 0 60px rgba(124,58,237,0.06) !important;
 }
+
+/* ═══════════════════════════════════════════
+   RESPONSIVE LANDING PAGE
+   ═══════════════════════════════════════════ */
+.landing-top-bar {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.url-input-container {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.features-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+@media (max-width: 640px) {
+  .landing-top-bar {
+    position: relative;
+    top: auto;
+    right: auto;
+    margin: 0 auto 24px auto;
+    width: 100%;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .url-input-container {
+    flex-direction: column;
+  }
+  .url-input-container button {
+    width: 100%;
+    justify-content: center;
+  }
+  .features-grid {
+    grid-template-columns: 1fr;
+  }
+}
+

@@ -133,14 +133,14 @@ export default function LandingPage({
 
       <div style={{
         position: 'relative', zIndex: 1,
-        height: '100vh', width: '100vw',
+        minHeight: '100vh', height: 'auto', width: '100vw',
         overflow: 'auto',
         display: 'flex', flexDirection: 'column',
         alignItems: 'center', justifyContent: 'center',
         padding: '40px 24px',
       }}>
         {/* Top bar controls */}
-        <div style={{ position: 'absolute', top: 18, right: 20, zIndex: 10, display: 'flex', alignItems: 'center', gap: 10 }}>
+        <div className="landing-top-bar">
           {user && (
             <>
               {/* Credit Indicator */}
@@ -247,7 +247,7 @@ export default function LandingPage({
             padding: '26px 28px',
             boxShadow: '0 20px 60px rgba(0,0,0,0.35), 0 0 40px rgba(124,58,237,0.07)',
           }}>
-            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
+            <div className="url-input-container">
               <div style={{ flex: 1, position: 'relative' }}>
                 <Globe size={15} style={{
                   position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)',
@@ -301,7 +301,7 @@ export default function LandingPage({
           </div>
 
           {/* ── Feature cards ── */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12 }}>
+          <div className="features-grid">
             {FEATURES.map(f => <FeatureCard key={f.label} {...f} />)}
           </div>
 
