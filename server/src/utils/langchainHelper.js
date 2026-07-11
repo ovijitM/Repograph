@@ -566,3 +566,14 @@ CRITICAL MERMAID RULES (follow all of these exactly or the diagram will fail to 
     return `Error retrieving answer: ${error.message}`;
   }
 };
+
+/**
+ * Clears the active in-memory vector store cache for a repository ID.
+ * @param {string} repoId 
+ */
+export const clearVectorStoreCache = (repoId) => {
+  if (vectorStoreCache.has(repoId)) {
+    console.log(`Clearing in-memory vector store cache for repository ${repoId}`);
+    vectorStoreCache.delete(repoId);
+  }
+};

@@ -4,7 +4,7 @@ import Job from '../models/Job.js';
 import User from '../models/User.js';
 import { cloneRepository, parseGitUrl, cleanupDirectory, getRemoteBranches } from '../utils/git.js';
 import { parseRepository } from '../utils/parser.js';
-import { generateRepoOverview, generateFileSummaries, indexRepositoryForChat } from '../utils/langchainHelper.js';
+import { generateRepoOverview, generateFileSummaries, indexRepositoryForChat, clearVectorStoreCache } from '../utils/langchainHelper.js';
 import { processRepositoryJob } from '../utils/jobWorker.js';
 import { calcRepoCost, deductCredits } from '../utils/creditHelper.js';
 import fs from 'fs-extra';
@@ -392,10 +392,17 @@ export const deleteRepo = async (req, res) => {
       // Delete FileNode documents
       await FileNode.deleteMany({ repository: id });
 
-      console.log(`Successfully deleted repository ${id} from MongoDB.`);
-      return res.status(200).json({ message: 'Repository deleted successfully.' });
+      // Delete Job documents associated with this repository
+      await Job.deleteMany({ repositoryId: id });
+
+      // Clear in-memory active vector stores
+      clearVectorStoreCache(id);
+
+      console.log(`Successfully deleted repository ${id} and all related nodes/jobs from MongoDB.`);
+      return res.status(200).json({ message: 'Repository and all associated data deleted successfully.' });
     } else {
       deleteRepoFallback(id);
+      clearVectorStoreCache(id);
       return res.status(200).json({ message: 'Repository deleted from cache successfully.' });
     }
   } catch (error) {

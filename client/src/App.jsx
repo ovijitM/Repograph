@@ -208,6 +208,10 @@ export default function App() {
     const success = await deleteRepo(repoId);
     if (success) {
       fetchHistory().then(setHistoryRepos);
+      const activeRepoId = localStorage.getItem('repograph_active_repo_id');
+      if (activeRepoId === repoId) {
+        localStorage.removeItem('repograph_active_repo_id');
+      }
     }
   }, [deleteRepo, fetchHistory]);
 
