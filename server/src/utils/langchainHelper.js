@@ -1,5 +1,4 @@
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
-import { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
 import { ChatAnthropic } from '@langchain/anthropic';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
 import { Document } from '@langchain/core/documents';
@@ -12,32 +11,35 @@ const vectorStoreCache = new Map();
 
 /**
  * Custom wrapper for Fallback Chat Model.
- * Attempts execution with a primary model (Gemini) first, and falls back to a fallback model (Claude) on failure.
+ * Attempts execution with a primary model first, and falls back to a fallback model on failure.
  */
 class FallbackChatModel {
-  constructor(primaryModel, fallbackModel) {
-    this.primaryModel = primaryModel;
-    this.fallbackModel = fallbackModel;
+  /**
+   * @param {Array<{model: Object, name: string}>} models Chain of models to try in order
+   */
+  constructor(models) {
+    this.models = models.filter(m => m.model);
   }
 
   async invoke(input, options) {
-    if (!this.primaryModel) {
-      if (this.fallbackModel) {
-        console.log("No primary model initialized. Using fallback Chat model (Claude)...");
-        return await this.fallbackModel.invoke(input, options);
-      }
+    if (this.models.length === 0) {
       throw new Error("No Chat model initialized.");
     }
 
-    try {
-      return await this.primaryModel.invoke(input, options);
-    } catch (err) {
-      if (this.fallbackModel) {
-        console.warn(`Primary Chat model (Gemini) failed: ${err.message}. Falling back to Claude...`);
-        return await this.fallbackModel.invoke(input, options);
+    let lastError = null;
+    for (let i = 0; i < this.models.length; i++) {
+      const { model, name } = this.models[i];
+      try {
+        if (i > 0) {
+          console.warn(`Primary/previous model failed. Using fallback Chat model (${name})...`);
+        }
+        return await model.invoke(input, options);
+      } catch (err) {
+        console.warn(`Chat model (${name}) failed to invoke: ${err.message}`);
+        lastError = err;
       }
-      throw err;
     }
+    throw lastError || new Error("All Chat models failed to invoke.");
   }
 }
 
@@ -65,10 +67,7 @@ const getLLMConfig = (userKeys) => {
   let hasKey = false;
   let key = null;
 
-  if (provider === 'google') {
-    key = cleanKey((userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY);
-    if (key) hasKey = true;
-  } else if (provider === 'openai') {
+  if (provider === 'openai') {
     key = cleanKey((userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY);
     if (key) hasKey = true;
   } else if (provider === 'anthropic') {
@@ -80,48 +79,46 @@ const getLLMConfig = (userKeys) => {
 };
 
 /**
- * Initializes the Chat LLM model.
+ * Initializes the Chat LLM model based on its role.
+ * Role can be 'main' (overview, summaries) or 'chat' (RAG codebase chat).
  * @param {object} userKeys Optional custom API keys from client
+ * @param {'main' | 'chat'} role
  */
-const initChatModel = (userKeys) => {
-  const provider = (userKeys && userKeys.provider) || process.env.LLM_PROVIDER || 'anthropic';
-
+const initChatModel = (userKeys, role = 'main') => {
   try {
-    if (provider === 'openai') {
-      const key = cleanKey((userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY);
-      if (!key) return null;
-      return new ChatOpenAI({
-        openAIApiKey: key,
-        modelName: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-        temperature: 0.2,
-      });
-    } else if (provider === 'google') {
-      const key = cleanKey((userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY);
-      if (!key) return null;
-      return new ChatGoogleGenerativeAI({
-        apiKey: key,
-        modelName: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
-        temperature: 0.2,
-      });
+    const modelsList = [];
+
+    const openaiKey = cleanKey((userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY);
+    const openaiModel = openaiKey ? new ChatOpenAI({
+      openAIApiKey: openaiKey,
+      modelName: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+      temperature: 0.2,
+    }) : null;
+
+    const anthropicKey = cleanKey((userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY);
+    const anthropicModel = anthropicKey ? new ChatAnthropic({
+      apiKey: anthropicKey,
+      model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest',
+      temperature: 0.2,
+    }) : null;
+
+    if (role === 'chat') {
+      // ChatGPT is main, Claude is fallback
+      modelsList.push({ model: openaiModel, name: 'ChatGPT' });
+      modelsList.push({ model: anthropicModel, name: 'Claude' });
     } else {
-      // provider === 'anthropic' (default)
-      const primaryKey = cleanKey((userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY);
-      const primaryModel = primaryKey ? new ChatAnthropic({
-        apiKey: primaryKey,
-        model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest',
-        temperature: 0.2,
-      }) : null;
-
-      const geminiKey = cleanKey((userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY);
-      const fallbackModel = geminiKey ? new ChatGoogleGenerativeAI({
-        apiKey: geminiKey,
-        modelName: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
-        temperature: 0.2,
-      }) : null;
-
-      if (!primaryModel && !fallbackModel) return null;
-      return new FallbackChatModel(primaryModel, fallbackModel);
+      // Claude is main, ChatGPT is fallback
+      modelsList.push({ model: anthropicModel, name: 'Claude' });
+      modelsList.push({ model: openaiModel, name: 'ChatGPT' });
     }
+
+    // Filter out null models
+    const activeModels = modelsList.filter(m => m.model !== null);
+
+    if (activeModels.length === 0) return null;
+    if (activeModels.length === 1) return activeModels[0].model;
+
+    return new FallbackChatModel(activeModels);
   } catch (err) {
     console.error('Failed to initialize Chat model:', err);
     return null;
@@ -130,19 +127,11 @@ const initChatModel = (userKeys) => {
 
 /**
  * Initializes the Embeddings model.
- * Decoupled from Chat LLM provider — uses Gemini (first choice) or OpenAI keys if available.
+ * Uses OpenAI embeddings since Gemini is removed.
  * @param {object} userKeys Optional custom API keys from client
  */
 const initEmbeddings = (userKeys) => {
   try {
-    const geminiKey = cleanKey((userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY);
-    if (geminiKey) {
-      return new GoogleGenerativeAIEmbeddings({
-        apiKey: geminiKey,
-        model: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
-      });
-    }
-
     const openaiKey = cleanKey((userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY);
     if (openaiKey) {
       return new OpenAIEmbeddings({
@@ -167,7 +156,7 @@ const initEmbeddings = (userKeys) => {
  * @returns {Promise<string>}
  */
 export const generateRepoOverview = async (repoName, structure, readmeContent = '', userKeys = null) => {
-  const model = initChatModel(userKeys);
+  const model = initChatModel(userKeys, 'main');
 
   const prompt = `You are a Senior Software Architect. Analyze the following information about a Git repository named "${repoName}".
   
@@ -205,7 +194,7 @@ This overview is generated in demo mode (no API key configured).
   - The entry point appears to be located around: \`${structure.files.find(f => f.name.includes('index') || f.name.includes('main') || f.name.includes('app'))?.path || 'root'}\`.
   - Directory structure covers components like: ${[...new Set(structure.files.map(f => f.parentPath).filter(Boolean))].slice(0, 5).map(p => `\`${p}\``).join(', ')}.
 
-*Note: Configure a \`GEMINI_API_KEY\` or \`OPENAI_API_KEY\` in the backend server's \`.env\` file to enable live LangChain-powered code analysis.*
+*Note: Configure an \`ANTHROPIC_API_KEY\` or \`OPENAI_API_KEY\` in the backend server's \`.env\` file to enable live LangChain-powered code analysis.*
 
 \`\`\`mermaid
 graph TD
@@ -231,7 +220,7 @@ graph TD
  * @returns {Promise<Object>} Map of filePath -> summary
  */
 export const generateFileSummaries = async (files, userKeys = null) => {
-  const model = initChatModel(userKeys);
+  const model = initChatModel(userKeys, 'main');
   const summaries = {};
 
   if (!model) {
@@ -394,7 +383,7 @@ ${matchInfo || '_No directly matching files found._'}
 
 To enable semantic search and conversational responses, make sure that:
 1. You have successfully configured a MongoDB Atlas Vector Search Index named **"repograph"** on the \`test.filenodes\` collection.
-2. A valid \`GEMINI_API_KEY\` or \`OPENAI_API_KEY\` is configured in your \`server/.env\` file.`;
+2. A valid \`ANTHROPIC_API_KEY\` or \`OPENAI_API_KEY\` is configured in your \`server/.env\` file.`;
 };
 
 /**
@@ -472,7 +461,7 @@ export const indexRepositoryForChat = async (repoId, fileNodes, userKeys = null)
  * @returns {Promise<string>}
  */
 export const queryRepositoryChat = async (repoId, fileNodes, question, chatHistory = [], userKeys = null) => {
-  const model = initChatModel(userKeys);
+  const model = initChatModel(userKeys, 'chat');
   const embeddings = initEmbeddings(userKeys);
 
   if (!model) {
