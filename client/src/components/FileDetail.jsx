@@ -41,9 +41,19 @@ export default function FileDetail({ selectedNode, onClose, onSelectNode, reposi
     setQueryLoading(true);
 
     try {
+      const token = localStorage.getItem('repograph_auth_token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      const openaiKey = localStorage.getItem('repograph_openai_api_key');
+      const anthropicKey = localStorage.getItem('repograph_anthropic_api_key');
+      if (openaiKey) headers['x-openai-key'] = openaiKey;
+      if (anthropicKey) headers['x-anthropic-key'] = anthropicKey;
+
       const res = await fetch(`/api/repos/${repository._id}/chat`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({
           question: `In the file \`${selectedNode.path}\`, ${questionText}`,
           chatHistory: []
