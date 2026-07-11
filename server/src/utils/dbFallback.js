@@ -110,3 +110,16 @@ export const saveFileNodesFallback = (repoId, fileNodes) => {
   fileNodesCache.set(repoId.toString(), records);
   return records;
 };
+
+/**
+ * Deletes a repository and its file nodes from the in-memory cache.
+ */
+export const deleteRepoFallback = (id) => {
+  const repo = reposCache.get(id.toString());
+  if (repo) {
+    console.log(`[FALLBACK] Deleting repository "${repo.name}" from in-memory cache.`);
+    reposCache.delete(id.toString());
+    reposCache.delete(`${repo.url}#${repo.branch}`);
+  }
+  fileNodesCache.delete(id.toString());
+};

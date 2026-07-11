@@ -72,7 +72,7 @@ export default function App() {
   // ── API layer ──────────────────────────────────────────────
   const {
     apiLoading, chatLoading, errorMsg,
-    analyzeRepo, loadRepo, fetchBranches, fetchHistory, sendChatMessage,
+    analyzeRepo, loadRepo, fetchBranches, fetchHistory, deleteRepo, sendChatMessage,
   } = useRepoApi();
 
   // ── Expose node selection to the chatbot link callback ─────
@@ -204,6 +204,13 @@ export default function App() {
     else       setScreen('landing');
   }, [loadRepo, applyRepoPayload]);
 
+  const handleDeleteRepo = useCallback(async (repoId) => {
+    const success = await deleteRepo(repoId);
+    if (success) {
+      fetchHistory().then(setHistoryRepos);
+    }
+  }, [deleteRepo, fetchHistory]);
+
   const handleBackToLanding = useCallback(() => {
     localStorage.removeItem('repograph_active_repo_id');
     setScreen('landing');
@@ -307,6 +314,7 @@ export default function App() {
           errorMsg={errorMsg}
           onAnalyze={handleAnalyze}
           onLoadFromHistory={handleLoadFromHistory}
+          onDeleteFromHistory={handleDeleteRepo}
           onOpenSettings={() => setIsSettingsOpen(true)}
           user={user}
           onLogout={handleLogout}

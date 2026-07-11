@@ -16,7 +16,8 @@ import {
   getFileNodesFallback,
   findRepoByUrlFallback,
   saveRepoFallback,
-  saveFileNodesFallback
+  saveFileNodesFallback,
+  deleteRepoFallback
 } from '../utils/dbFallback.js';
 
 /**
@@ -367,6 +368,38 @@ export const getJobStatus = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching job status:', error);
+    return res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Controller to delete an analyzed repository.
+ * DELETE /api/repos/:id
+ */
+export const deleteRepo = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    if (isDbConnected()) {
+      const repo = await Repository.findOne({ _id: id, userId: req.userId });
+      if (!repo) {
+        return res.status(404).json({ error: 'Repository not found or access denied.' });
+      }
+
+      // Delete Repository document
+      await Repository.deleteOne({ _id: id });
+      
+      // Delete FileNode documents
+      await FileNode.deleteMany({ repository: id });
+
+      console.log(`Successfully deleted repository ${id} from MongoDB.`);
+      return res.status(200).json({ message: 'Repository deleted successfully.' });
+    } else {
+      deleteRepoFallback(id);
+      return res.status(200).json({ message: 'Repository deleted from cache successfully.' });
+    }
+  } catch (error) {
+    console.error('Error deleting repository:', error);
     return res.status(500).json({ error: error.message });
   }
 };

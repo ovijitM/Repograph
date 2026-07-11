@@ -4,7 +4,7 @@
 import React, { useState } from 'react';
 import {
   Github, Globe, FileCheck, Sparkles,
-  Network, Cpu, MessageCircle, Zap, Settings,
+  Network, Cpu, MessageCircle, Zap, Settings, X
 } from 'lucide-react';
 import ThemeToggle from '../components/ThemeToggle';
 
@@ -89,23 +89,51 @@ function ExampleChip({ name, url, tag, onClick }) {
   );
 }
 
-function HistoryChip({ repo, onClick }) {
+function HistoryChip({ repo, onClick, onDelete }) {
+  const handleDelete = (e) => {
+    e.stopPropagation();
+    if (window.confirm(`Are you sure you want to delete the analyzed repository "${repo.owner}/${repo.name}"?`)) {
+      onDelete(repo._id);
+    }
+  };
+
   return (
-    <button
+    <div
       onClick={onClick}
       style={{
-        display: 'flex', alignItems: 'center', gap: 6,
+        display: 'flex', alignItems: 'center', gap: 8,
         background: 'var(--bg-card)', border: '1px solid var(--border-glass)',
         borderRadius: 7, padding: '5px 11px',
         fontSize: 11, color: 'var(--text-muted)', cursor: 'pointer',
         transition: 'all 0.15s', fontFamily: 'Inter,sans-serif',
+        position: 'relative'
       }}
       onMouseEnter={e => { e.currentTarget.style.background = 'rgba(6,182,212,0.08)'; e.currentTarget.style.borderColor = 'rgba(6,182,212,0.25)'; e.currentTarget.style.color = 'var(--text-primary)'; }}
       onMouseLeave={e => { e.currentTarget.style.background = 'var(--bg-card)'; e.currentTarget.style.borderColor = 'var(--border-glass)'; e.currentTarget.style.color = 'var(--text-muted)'; }}
     >
       <span>🕸</span>
       <span>{repo.owner}/{repo.name}</span>
-    </button>
+      <button
+        onClick={handleDelete}
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: '2px',
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'rgba(255, 255, 255, 0.3)',
+          borderRadius: '4px',
+          marginLeft: '4px',
+          transition: 'all 0.15s'
+        }}
+        onMouseEnter={e => { e.currentTarget.style.color = '#ef4444'; e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)'; }}
+        onMouseLeave={e => { e.currentTarget.style.color = 'rgba(255, 255, 255, 0.3)'; e.currentTarget.style.background = 'none'; }}
+      >
+        <X size={10} />
+      </button>
+    </div>
   );
 }
 
@@ -115,6 +143,7 @@ export default function LandingPage({
   historyRepos,
   onAnalyze,           // fn(url: string) => void
   onLoadFromHistory,   // fn(repoId: string) => void
+  onDeleteFromHistory, // fn(repoId: string) => void
   errorMsg,
   onOpenSettings,
   user,
@@ -326,7 +355,12 @@ export default function LandingPage({
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 7, maxHeight: 130, overflowY: 'auto' }}>
                 {historyRepos.map(repo => (
-                  <HistoryChip key={repo._id} repo={repo} onClick={() => onLoadFromHistory(repo._id)} />
+                  <HistoryChip 
+                    key={repo._id} 
+                    repo={repo} 
+                    onClick={() => onLoadFromHistory(repo._id)} 
+                    onDelete={onDeleteFromHistory}
+                  />
                 ))}
               </div>
             </div>

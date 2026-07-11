@@ -121,6 +121,26 @@ export function useRepoApi() {
     return [];
   }, [getHeaders]);
 
+  // ── Delete an analyzed repository ──────────────────────────
+  const deleteRepo = useCallback(async (repoId) => {
+    setErrorMsg('');
+    setApiLoading(true);
+    try {
+      const res = await fetch(`/api/repos/${repoId}`, {
+        method: 'DELETE',
+        headers: getHeaders(false),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to delete repository');
+      return true;
+    } catch (err) {
+      setErrorMsg(err.message);
+      return false;
+    } finally {
+      setApiLoading(false);
+    }
+  }, [getHeaders]);
+
   // ── Send a chat message ────────────────────────────────────
   const sendChatMessage = useCallback(async (repoId, question, chatHistory) => {
     setChatLoading(true);
@@ -148,6 +168,6 @@ export function useRepoApi() {
 
   return {
     apiLoading, chatLoading, errorMsg, setErrorMsg,
-    analyzeRepo, loadRepo, fetchBranches, fetchHistory, sendChatMessage,
+    analyzeRepo, loadRepo, fetchBranches, fetchHistory, deleteRepo, sendChatMessage,
   };
 }
