@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Eye, EyeOff, Check, ShieldAlert, Key, HelpCircle } from 'lucide-react';
 
 export default function SettingsModal({ isOpen, onClose, theme }) {
-  const [provider, setProvider] = useState('google');
+  const [provider, setProvider] = useState('anthropic');
   const [geminiKey, setGeminiKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
   const [anthropicKey, setAnthropicKey] = useState('');
@@ -13,7 +13,7 @@ export default function SettingsModal({ isOpen, onClose, theme }) {
 
   useEffect(() => {
     if (isOpen) {
-      setProvider(localStorage.getItem('repograph_llm_provider') || 'google');
+      setProvider(localStorage.getItem('repograph_llm_provider') || 'anthropic');
       setGeminiKey(localStorage.getItem('repograph_gemini_api_key') || '');
       setOpenaiKey(localStorage.getItem('repograph_openai_api_key') || '');
       setAnthropicKey(localStorage.getItem('repograph_anthropic_api_key') || '');

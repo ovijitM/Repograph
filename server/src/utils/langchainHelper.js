@@ -47,7 +47,7 @@ class FallbackChatModel {
  * @returns {{hasKey: boolean, provider: string, key: string}}
  */
 const getLLMConfig = (userKeys) => {
-  const provider = (userKeys && userKeys.provider) || process.env.LLM_PROVIDER || 'google';
+  const provider = (userKeys && userKeys.provider) || process.env.LLM_PROVIDER || 'anthropic';
   let hasKey = false;
   let key = null;
 
@@ -70,7 +70,7 @@ const getLLMConfig = (userKeys) => {
  * @param {object} userKeys Optional custom API keys from client
  */
 const initChatModel = (userKeys) => {
-  const provider = (userKeys && userKeys.provider) || process.env.LLM_PROVIDER || 'google';
+  const provider = (userKeys && userKeys.provider) || process.env.LLM_PROVIDER || 'anthropic';
 
   try {
     if (provider === 'openai') {
@@ -81,27 +81,27 @@ const initChatModel = (userKeys) => {
         modelName: process.env.OPENAI_MODEL || 'gpt-4o-mini',
         temperature: 0.2,
       });
-    } else if (provider === 'anthropic') {
-      const key = (userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY;
+    } else if (provider === 'google') {
+      const key = (userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY;
       if (!key) return null;
-      return new ChatAnthropic({
+      return new ChatGoogleGenerativeAI({
         apiKey: key,
-        model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20240620',
+        modelName: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
         temperature: 0.2,
       });
     } else {
-      // provider === 'google' (default)
-      const geminiKey = (userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY;
-      const primaryModel = geminiKey ? new ChatGoogleGenerativeAI({
-        apiKey: geminiKey,
-        modelName: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+      // provider === 'anthropic' (default)
+      const primaryKey = (userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY;
+      const primaryModel = primaryKey ? new ChatAnthropic({
+        apiKey: primaryKey,
+        model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest',
         temperature: 0.2,
       }) : null;
 
-      const anthropicKey = (userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY;
-      const fallbackModel = anthropicKey ? new ChatAnthropic({
-        apiKey: anthropicKey,
-        model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20240620',
+      const geminiKey = (userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY;
+      const fallbackModel = geminiKey ? new ChatGoogleGenerativeAI({
+        apiKey: geminiKey,
+        modelName: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
         temperature: 0.2,
       }) : null;
 
@@ -116,24 +116,28 @@ const initChatModel = (userKeys) => {
 
 /**
  * Initializes the Embeddings model.
+ * Decoupled from Chat LLM provider — uses Gemini (first choice) or OpenAI keys if available.
  * @param {object} userKeys Optional custom API keys from client
  */
 const initEmbeddings = (userKeys) => {
-  const { hasKey, provider, key } = getLLMConfig(userKeys);
-  if (!hasKey) return null;
-
   try {
-    if (provider === 'openai') {
-      return new OpenAIEmbeddings({
-        openAIApiKey: key,
-        modelName: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
-      });
-    } else {
+    const geminiKey = (userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY;
+    if (geminiKey) {
       return new GoogleGenerativeAIEmbeddings({
-        apiKey: key,
+        apiKey: geminiKey,
         model: process.env.GEMINI_EMBEDDING_MODEL || 'gemini-embedding-001',
       });
     }
+
+    const openaiKey = (userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY;
+    if (openaiKey) {
+      return new OpenAIEmbeddings({
+        openAIApiKey: openaiKey,
+        modelName: process.env.OPENAI_EMBEDDING_MODEL || 'text-embedding-3-small',
+      });
+    }
+
+    return null;
   } catch (err) {
     console.error('Failed to initialize Embeddings model:', err);
     return null;
