@@ -43,13 +43,10 @@ services:
       - "traefik.http.services.repograph.loadbalancer.server.port=80"
     networks:
       - default
-      - proxy_network # Connects the frontend to your existing Traefik network
 
 networks:
   default:
-    driver: bridge
-  proxy_network:
-    name: proxy # CHANGE THIS to the actual name of your existing Traefik docker network (e.g. "web", "traefik", "proxy")
+    name: bridge
     external: true
 
 volumes:
