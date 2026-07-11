@@ -7,15 +7,15 @@
 //   • Renders one of: LandingPage | Loader | DashboardPage
 
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTheme }    from './hooks/useTheme';
-import { useRepoApi }  from './hooks/useRepoApi';
-import LandingPage     from './pages/LandingPage';
-import DashboardPage   from './pages/DashboardPage';
-import Loader          from './components/Loader';
-import SettingsModal   from './components/SettingsModal';
-import AuthPage        from './pages/AuthPage';
-import MarketingPage   from './pages/MarketingPage';
-import CheckoutModal   from './components/CheckoutModal';
+import { useTheme } from './hooks/useTheme';
+import { useRepoApi } from './hooks/useRepoApi';
+import LandingPage from './pages/LandingPage';
+import DashboardPage from './pages/DashboardPage';
+import Loader from './components/Loader';
+import SettingsModal from './components/SettingsModal';
+import AuthPage from './pages/AuthPage';
+import MarketingPage from './pages/MarketingPage';
+import CheckoutModal from './components/CheckoutModal';
 import AdminDashboardPage from './pages/AdminDashboardPage';
 
 export default function App() {
@@ -31,14 +31,44 @@ export default function App() {
   const [showAuth, setShowAuth] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [paymentToast, setPaymentToast] = useState(''); // 'success' | 'cancelled' | ''
-  const [isAdminRoute, setIsAdminRoute] = useState(
-    window.location.pathname === '/admin' || window.location.hash === '#/admin'
-  );
+  const parseCurrentRoute = useCallback(() => {
+    const path = window.location.pathname;
+    const hash = window.location.hash;
+    
+    // Check if it's admin route
+    const isAdmin = path === '/admin' || hash === '#/admin' || hash.startsWith('#/admin');
+    // Check if it's auth route
+    const isAuth = path === '/auth' || hash === '#/auth' || hash.startsWith('#/auth');
+    // Check if it's dashboard/repos route
+    let repoId = null;
+    const repoIdMatch = path.match(/^\/repos\/([a-f0-9]+)/) || hash.match(/^#\/repos\/([a-f0-9]+)/);
+    if (repoIdMatch) {
+      repoId = repoIdMatch[1];
+    }
+    // Check if it's console route
+    const isConsole = path === '/console' || hash === '#/console' || hash.startsWith('#/console');
+    
+    // Check if it's marketing sub-sections
+    const isSecurity = path === '/security' || hash === '#security';
+    const isPricing = path === '/pricing' || hash === '#pricing';
+    const isFeatures = path === '/features' || hash === '#features';
+    const isMarketing = isSecurity || isPricing || isFeatures || (path === '/' && !isAuth && !isAdmin && !repoId && !isConsole);
+
+    return { isAdmin, isAuth, repoId, isConsole, isMarketing, path, hash };
+  }, []);
+
+  const [currentRoute, setCurrentRoute] = useState(parseCurrentRoute);
+
+  const navigate = useCallback((path, hash = '') => {
+    const url = `${path}${hash}`;
+    window.history.pushState({}, '', url);
+    setCurrentRoute(parseCurrentRoute());
+  }, [parseCurrentRoute]);
 
   // ── Route listener for path changes ────────────────────────
   useEffect(() => {
     const handleUrlChange = () => {
-      setIsAdminRoute(window.location.pathname === '/admin' || window.location.hash === '#/admin');
+      setCurrentRoute(parseCurrentRoute());
     };
     window.addEventListener('popstate', handleUrlChange);
     window.addEventListener('hashchange', handleUrlChange);
@@ -46,7 +76,7 @@ export default function App() {
       window.removeEventListener('popstate', handleUrlChange);
       window.removeEventListener('hashchange', handleUrlChange);
     };
-  }, []);
+  }, [parseCurrentRoute]);
 
   // ── Theme ──────────────────────────────────────────────────
   const { theme, toggle: toggleTheme } = useTheme();
@@ -56,14 +86,14 @@ export default function App() {
 
   // ── Repository state ───────────────────────────────────────
   const [historyRepos, setHistoryRepos] = useState([]);
-  const [activeRepo,   setActiveRepo]   = useState(null);
-  const [nodes,        setNodes]        = useState([]);
+  const [activeRepo, setActiveRepo] = useState(null);
+  const [nodes, setNodes] = useState([]);
   const [selectedNode, setSelectedNode] = useState(null);
-  const [branches,     setBranches]     = useState(['main']);
+  const [branches, setBranches] = useState(['main']);
 
   // ── Chat state ─────────────────────────────────────────────
   const [chatMessages, setChatMessages] = useState([]);
-  const [isChatOpen, setIsChatOpen]     = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
 
   // ── URL used for the Loader screen display ─────────────────
   const [pendingUrl, setPendingUrl] = useState('');
@@ -123,7 +153,12 @@ export default function App() {
     localStorage.setItem('repograph_user', JSON.stringify(newUser));
     setToken(newToken);
     setUser(newUser);
-  }, []);
+    if (newUser.role === 'admin' && currentRoute.isAdmin) {
+      navigate('/admin');
+    } else {
+      navigate('/console');
+    }
+  }, [currentRoute, navigate]);
 
   const handleLogout = useCallback(() => {
     localStorage.removeItem('repograph_auth_token');
@@ -132,8 +167,8 @@ export default function App() {
     setToken('');
     setUser(null);
     setScreen('landing');
-    setShowAuth(false);
-  }, []);
+    navigate('/');
+  }, [navigate]);
 
   const handlePurchaseSuccess = useCallback((newCredits) => {
     setUser(prev => prev ? { ...prev, credits: newCredits } : null);
@@ -175,9 +210,11 @@ export default function App() {
         localUser.credits = data.credits;
         localStorage.setItem('repograph_user', JSON.stringify(localUser));
       }
+      navigate(`/repos/${data.repository._id}`);
     } else {
-      setScreen('landing'); // error — useRepoApi already set errorMsg
-      
+      setScreen('landing');
+      navigate('/console');
+
       // Sync profile credits count on failure (in case of a refund)
       try {
         const token = localStorage.getItem('repograph_auth_token');
@@ -195,14 +232,11 @@ export default function App() {
         console.error('Failed to sync refund credits:', refundErr);
       }
     }
-  }, [analyzeRepo, applyRepoPayload, fetchHistory]);
+  }, [analyzeRepo, applyRepoPayload, fetchHistory, navigate]);
 
-  const handleLoadFromHistory = useCallback(async (repoId) => {
-    setScreen('loading');
-    const data = await loadRepo(repoId);
-    if (data) applyRepoPayload(data);
-    else       setScreen('landing');
-  }, [loadRepo, applyRepoPayload]);
+  const handleLoadFromHistory = useCallback((repoId) => {
+    navigate(`/repos/${repoId}`);
+  }, [navigate]);
 
   const handleDeleteRepo = useCallback(async (repoId) => {
     const success = await deleteRepo(repoId);
@@ -217,18 +251,45 @@ export default function App() {
 
   const handleBackToLanding = useCallback(() => {
     localStorage.removeItem('repograph_active_repo_id');
+    setActiveRepo(null);
     setScreen('landing');
-  }, []);
+    navigate('/console');
+  }, [navigate]);
 
-  // ── Restore active repository session on reload ────────────
+  // ── Load repository on route parameter change ──────────────
   useEffect(() => {
-    if (token) {
-      const activeRepoId = localStorage.getItem('repograph_active_repo_id');
-      if (activeRepoId) {
-        handleLoadFromHistory(activeRepoId);
+    if (currentRoute.repoId && token) {
+      if (!activeRepo || activeRepo._id !== currentRoute.repoId) {
+        setScreen('loading');
+        loadRepo(currentRoute.repoId).then((data) => {
+          if (data) {
+            applyRepoPayload(data);
+          } else {
+            setScreen('landing');
+            navigate('/console');
+          }
+        });
       }
     }
-  }, [token, handleLoadFromHistory]);
+  }, [currentRoute.repoId, token, activeRepo, loadRepo, applyRepoPayload, navigate]);
+
+  // ── Restore active repository session on console land ──────
+  useEffect(() => {
+    if (token && currentRoute.isConsole) {
+      const activeRepoId = localStorage.getItem('repograph_active_repo_id');
+      if (activeRepoId) {
+        navigate(`/repos/${activeRepoId}`);
+      }
+    }
+  }, [token, currentRoute.isConsole, navigate]);
+
+  const handleMarketingGetStarted = useCallback(() => {
+    if (token) {
+      navigate('/console');
+    } else {
+      navigate('/auth');
+    }
+  }, [token, navigate]);
 
   const handleNodeSelect = useCallback((item) => {
     const full = nodes.find(n => n.path === item.path);
@@ -271,12 +332,9 @@ export default function App() {
   }, [activeRepo, handleAnalyze]);
 
   // ── Render ─────────────────────────────────────────────────
-  if (isAdminRoute) {
+  if (currentRoute.isAdmin) {
     if (!token) {
-      return <AuthPage onAuthSuccess={handleAuthSuccess} onBack={() => {
-        window.history.replaceState({}, '', '/');
-        setIsAdminRoute(false);
-      }} />;
+      return <AuthPage onAuthSuccess={handleAuthSuccess} onBack={() => navigate('/')} />;
     }
     if (user?.role !== 'admin') {
       return (
@@ -299,18 +357,36 @@ export default function App() {
     return <AdminDashboardPage theme={theme} onLogout={handleLogout} />;
   }
 
-  if (!token) {
-    if (showAuth) {
-      return <AuthPage onAuthSuccess={handleAuthSuccess} onBack={() => setShowAuth(false)} />;
+  // Auth Route
+  if (currentRoute.isAuth) {
+    if (token) {
+      // If already logged in, redirect to console
+      setTimeout(() => navigate('/console'), 0);
+      return <Loader gitUrl="" />;
     }
-    return <MarketingPage theme={theme} onToggleTheme={toggleTheme} onGetStarted={() => setShowAuth(true)} />;
+    return <AuthPage onAuthSuccess={handleAuthSuccess} onBack={() => navigate('/')} />;
   }
+
+  // Marketing page (or Fallback if no token is present)
+  if (!token || currentRoute.isMarketing) {
+    return (
+      <MarketingPage 
+        theme={theme} 
+        onToggleTheme={toggleTheme} 
+        onGetStarted={handleMarketingGetStarted} 
+        isAuthenticated={!!token}
+      />
+    );
+  }
+
+  // Loading Screen
   if (screen === 'loading') return <Loader gitUrl={pendingUrl} />;
 
+  // Main Authenticated Screens
   return (
     <div style={{ width: '100vw', height: '100vh', overflow: 'hidden', position: 'relative' }}>
 
-      {screen === 'landing' && (
+      {(currentRoute.isConsole || screen === 'landing') && (
         <LandingPage
           theme={theme}
           onToggleTheme={toggleTheme}
@@ -326,7 +402,7 @@ export default function App() {
         />
       )}
 
-      {screen === 'dashboard' && activeRepo && (
+      {currentRoute.repoId && activeRepo && screen === 'dashboard' && (
         <DashboardPage
           theme={theme}
           onToggleTheme={toggleTheme}

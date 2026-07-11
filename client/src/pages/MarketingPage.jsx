@@ -8,34 +8,34 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
   // ── Fake Interactive Demo Animation Loop ────────────────
   const [demoStep, setDemoStep] = useState(0); // 0: Idle, 1: Hover File, 2: Click File, 3: Hover Input 1, 4: Type Chat 1, 5: AI Loading 1, 6: AI Reply 1, 7: Hover Input 2, 8: Type Chat 2, 9: AI Loading 2, 10: AI Reply 2, 11: Resetting
   const [typedText, setTypedText] = useState('');
-  
+
   useEffect(() => {
     let timeouts = [];
-    
+
     const runDemo = () => {
       // Step 0: Reset (0s)
       setDemoStep(0);
       setTypedText('');
-      
+
       // Step 1: Hover File (1.5s)
       timeouts.push(setTimeout(() => {
         setDemoStep(1);
       }, 1500));
-      
+
       // Step 2: Click File (2.8s)
       timeouts.push(setTimeout(() => {
         setDemoStep(2);
       }, 2800));
-      
+
       // Step 3: Hover Chat Input 1 (4.2s)
       timeouts.push(setTimeout(() => {
         setDemoStep(3);
       }, 4200));
-      
+
       // Step 4: Start Typing Chat 1 (5.4s)
       timeouts.push(setTimeout(() => {
         setDemoStep(4);
-        
+
         // Typing effect loop 1
         const text = "Explain this codebase structure...";
         let currentIdx = 0;
@@ -47,30 +47,30 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
             clearInterval(typingInterval);
           }
         }, 50);
-        
+
         timeouts.push({ close: () => clearInterval(typingInterval) });
       }, 5400));
-      
+
       // Step 5: AI Loading 1 (8.2s)
       timeouts.push(setTimeout(() => {
         setDemoStep(5);
       }, 8200));
-      
+
       // Step 6: AI Reply 1 (9.4s)
       timeouts.push(setTimeout(() => {
         setDemoStep(6);
       }, 9400));
-      
+
       // Step 7: Hover Chat Input 2 (13.0s)
       timeouts.push(setTimeout(() => {
         setDemoStep(7);
         setTypedText('');
       }, 13000));
-      
+
       // Step 8: Start Typing Chat 2 (14.2s)
       timeouts.push(setTimeout(() => {
         setDemoStep(8);
-        
+
         // Typing effect loop 2
         const text = "How are credits charged?";
         let currentIdx = 0;
@@ -82,20 +82,20 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
             clearInterval(typingInterval);
           }
         }, 50);
-        
+
         timeouts.push({ close: () => clearInterval(typingInterval) });
       }, 14200));
-      
+
       // Step 9: AI Loading 2 (17.2s)
       timeouts.push(setTimeout(() => {
         setDemoStep(9);
       }, 17200));
-      
+
       // Step 10: AI Reply 2 (18.4s)
       timeouts.push(setTimeout(() => {
         setDemoStep(10);
       }, 18400));
-      
+
       // Step 11: Done/Hold and loop reset (23.5s)
       timeouts.push(setTimeout(() => {
         setDemoStep(11);
@@ -104,7 +104,7 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
     };
 
     runDemo();
-    
+
     return () => {
       timeouts.forEach(t => {
         if (t.close) t.close();
@@ -298,7 +298,7 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
         {/* Controls / CTA */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
           <ThemeToggle theme={theme} onToggle={onToggleTheme} />
-          <button 
+          <button
             onClick={onGetStarted}
             className="btn-secondary-outline"
             style={{
@@ -311,7 +311,7 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
           >
             Sign In
           </button>
-          <button 
+          <button
             onClick={onGetStarted}
             className="btn-glow-primary"
             style={{
@@ -366,7 +366,7 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
           margin: '0 auto 20px auto',
           color: isDark ? '#ffffff' : '#0f172a'
         }}>
-          Visualize Code Architectures <br/>
+          Visualize Code Architectures <br />
           <span style={{
             background: 'linear-gradient(135deg, var(--color-primary) 0%, var(--color-secondary) 100%)',
             WebkitBackgroundClip: 'text',
@@ -388,7 +388,7 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
 
         {/* Hero CTA */}
         <div style={{ display: 'flex', gap: '14px', justifyContent: 'center' }}>
-          <button 
+          <button
             onClick={onGetStarted}
             className="btn-glow-primary"
             style={{
@@ -415,8 +415,8 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
           borderRadius: '24px',
           background: isDark ? 'rgba(8, 7, 33, 0.45)' : 'rgba(255, 255, 255, 0.6)',
           border: '1px solid var(--border-glass-bright)',
-          boxShadow: isDark 
-            ? '0 30px 100px rgba(0,0,0,0.7), 0 0 80px rgba(6, 182, 212, 0.08)' 
+          boxShadow: isDark
+            ? '0 30px 100px rgba(0,0,0,0.7), 0 0 80px rgba(6, 182, 212, 0.08)'
             : '0 30px 100px rgba(8, 7, 33, 0.1), 0 0 60px rgba(6, 182, 212, 0.03)',
           overflow: 'hidden',
           display: 'flex',
@@ -461,13 +461,13 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
                 {['App.jsx', 'components/Sidebar.jsx', 'components/Graph.jsx', 'hooks/useTheme.js', 'utils/parser.js'].map((f, i) => {
                   const isHighlighted = i === 1 && demoStep >= 2 && demoStep < 7;
                   return (
-                    <div 
-                      key={i} 
-                      style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '6px', 
-                        fontSize: '10px', 
+                    <div
+                      key={i}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        fontSize: '10px',
                         padding: '6px 8px',
                         borderRadius: '6px',
                         background: isHighlighted ? 'rgba(6, 182, 212, 0.15)' : 'transparent',
@@ -494,10 +494,10 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
               overflow: 'hidden'
             }}>
               {/* Fake Network Nodes */}
-              <div style={{ 
-                position: 'absolute', width: '20px', height: '20px', borderRadius: '50%', background: '#7c3aed', boxShadow: '0 0 10px #7c3aed', 
+              <div style={{
+                position: 'absolute', width: '20px', height: '20px', borderRadius: '50%', background: '#7c3aed', boxShadow: '0 0 10px #7c3aed',
                 left: '20%', top: '30%',
-                animation: 'float1 5s ease-in-out infinite' 
+                animation: 'float1 5s ease-in-out infinite'
               }}>
                 <span style={{
                   position: 'absolute', left: '26px', top: '50%', transform: 'translateY(-50%)',
@@ -509,10 +509,10 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
                 </span>
               </div>
 
-              <div style={{ 
-                position: 'absolute', width: '14px', height: '14px', borderRadius: '50%', background: '#06b6d4', boxShadow: '0 0 10px #06b6d4', 
+              <div style={{
+                position: 'absolute', width: '14px', height: '14px', borderRadius: '50%', background: '#06b6d4', boxShadow: '0 0 10px #06b6d4',
                 left: '45%', top: '25%',
-                animation: 'float2 6s ease-in-out infinite' 
+                animation: 'float2 6s ease-in-out infinite'
               }}>
                 <span style={{
                   position: 'absolute', left: '20px', top: '50%', transform: 'translateY(-50%)',
@@ -523,17 +523,17 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
                   hooks/useTheme.js
                 </span>
               </div>
-              
+
               {/* Interactive Target Node components/Sidebar.jsx */}
-              <div style={{ 
-                position: 'absolute', 
-                width: '28px', 
-                height: '28px', 
-                borderRadius: '50%', 
-                background: '#f43f5e', 
+              <div style={{
+                position: 'absolute',
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: '#f43f5e',
                 boxShadow: (demoStep >= 2 && demoStep < 7) ? '0 0 25px #f43f5e' : '0 0 15px #f43f5e',
                 border: (demoStep >= 2 && demoStep < 7) ? '2px solid white' : 'none',
-                left: '40%', 
+                left: '40%',
                 top: '50%',
                 animation: (demoStep >= 2 && demoStep < 7)
                   ? 'float3 7s ease-in-out infinite, pulseRing 1.5s infinite ease-in-out'
@@ -542,8 +542,8 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
               }}>
                 <span style={{
                   position: 'absolute', left: '34px', top: '50%', transform: 'translateY(-50%)',
-                  fontSize: '8px', 
-                  fontWeight: (demoStep >= 2 && demoStep < 7) ? '800' : '600', 
+                  fontSize: '8px',
+                  fontWeight: (demoStep >= 2 && demoStep < 7) ? '800' : '600',
                   fontFamily: 'var(--font-code)',
                   color: (demoStep >= 2 && demoStep < 7)
                     ? (isDark ? '#ffffff' : '#0f172a')
@@ -555,11 +555,11 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
                   components/Sidebar.jsx
                 </span>
               </div>
-              
-              <div style={{ 
-                position: 'absolute', width: '16px', height: '16px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981', 
+
+              <div style={{
+                position: 'absolute', width: '16px', height: '16px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 10px #10b981',
                 left: '65%', top: '40%',
-                animation: 'float4 8s ease-in-out infinite' 
+                animation: 'float4 8s ease-in-out infinite'
               }}>
                 <span style={{
                   position: 'absolute', left: '22px', top: '50%', transform: 'translateY(-50%)',
@@ -571,10 +571,10 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
                 </span>
               </div>
 
-              <div style={{ 
-                position: 'absolute', width: '12px', height: '12px', borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 10px #f59e0b', 
+              <div style={{
+                position: 'absolute', width: '12px', height: '12px', borderRadius: '50%', background: '#f59e0b', boxShadow: '0 0 10px #f59e0b',
                 left: '60%', top: '70%',
-                animation: 'float5 5s ease-in-out infinite' 
+                animation: 'float5 5s ease-in-out infinite'
               }}>
                 <span style={{
                   position: 'absolute', left: '18px', top: '50%', transform: 'translateY(-50%)',
@@ -591,10 +591,10 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
                 const lineStrokeColor = isDark ? 'rgba(255,255,255,0.09)' : 'rgba(15, 23, 42, 0.09)';
                 return (
                   <svg style={{ position: 'absolute', width: '100%', height: '100%', pointerEvents: 'none' }}>
-                    <line 
-                      x1="20%" y1="30%" x2="40%" y2="50%" 
-                      stroke={(demoStep >= 2 && demoStep < 7) ? 'var(--color-accent)' : lineStrokeColor} 
-                      strokeWidth={(demoStep >= 2 && demoStep < 7) ? '1.8' : '1'} 
+                    <line
+                      x1="20%" y1="30%" x2="40%" y2="50%"
+                      stroke={(demoStep >= 2 && demoStep < 7) ? 'var(--color-accent)' : lineStrokeColor}
+                      strokeWidth={(demoStep >= 2 && demoStep < 7) ? '1.8' : '1'}
                       style={{ transition: 'stroke 0.4s' }}
                     />
                     <line x1="45%" y1="25%" x2="40%" y2="50%" stroke={lineStrokeColor} strokeWidth="1" />
@@ -633,11 +633,11 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
                 <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-primary)', borderBottom: '1px solid var(--border-glass)', paddingBottom: '8px', marginBottom: '10px' }}>
                   💬 Codebase Chat
                 </div>
-                <div 
-                  style={{ 
-                    display: 'flex', 
-                    flexDirection: 'column', 
-                    gap: '8px', 
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '8px',
                     marginTop: '8px',
                     maxHeight: '340px',
                     overflowY: 'auto',
@@ -646,12 +646,12 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
                 >
                   {/* Default starting bubble */}
                   {demoStep < 4 && (
-                    <div style={{ 
-                      padding: '8px 10px', 
-                      borderRadius: '8px', 
-                      background: 'rgba(255,255,255,0.02)', 
-                      border: '1px solid var(--border-glass)', 
-                      fontSize: '9.5px', 
+                    <div style={{
+                      padding: '8px 10px',
+                      borderRadius: '8px',
+                      background: 'rgba(255,255,255,0.02)',
+                      border: '1px solid var(--border-glass)',
+                      fontSize: '9.5px',
                       color: 'var(--text-muted)',
                       lineHeight: '1.4'
                     }}>
@@ -663,12 +663,12 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
                   {demoStep >= 4 && (
                     <>
                       {/* User Bubble 1 */}
-                      <div style={{ 
-                        padding: '8px 12px', 
-                        borderRadius: '10px 10px 2px 10px', 
-                        background: 'rgba(124, 58, 237, 0.15)', 
-                        border: '1px solid rgba(124, 58, 237, 0.25)', 
-                        fontSize: '9.5px', 
+                      <div style={{
+                        padding: '8px 12px',
+                        borderRadius: '10px 10px 2px 10px',
+                        background: 'rgba(124, 58, 237, 0.15)',
+                        border: '1px solid rgba(124, 58, 237, 0.25)',
+                        fontSize: '9.5px',
                         color: '#c084fc',
                         alignSelf: 'flex-end',
                         animation: 'bubbleFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
@@ -678,25 +678,25 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
 
                       {/* AI Loading 1 */}
                       {demoStep === 5 && (
-                        <div style={{ 
-                          padding: '8px 12px', 
-                          borderRadius: '10px 10px 10px 2px', 
-                          background: 'rgba(255,255,255,0.02)', 
-                          border: '1px solid var(--border-glass)', 
-                          fontSize: '9.5px', 
+                        <div style={{
+                          padding: '8px 12px',
+                          borderRadius: '10px 10px 10px 2px',
+                          background: 'rgba(255,255,255,0.02)',
+                          border: '1px solid var(--border-glass)',
+                          fontSize: '9.5px',
                           color: 'var(--text-secondary)',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '8px',
                           animation: 'bubbleFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
                         }}>
-                          <div style={{ 
-                            width: '8px', 
-                            height: '8px', 
-                            borderRadius: '50%', 
-                            border: '1.5px solid transparent', 
-                            borderTopColor: 'var(--color-secondary)', 
-                            animation: 'spin 1s linear infinite' 
+                          <div style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            border: '1.5px solid transparent',
+                            borderTopColor: 'var(--color-secondary)',
+                            animation: 'spin 1s linear infinite'
                           }} />
                           Thinking...
                         </div>
@@ -704,17 +704,17 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
 
                       {/* AI Response 1 */}
                       {demoStep >= 6 && (
-                        <div style={{ 
-                          padding: '8px 12px', 
-                          borderRadius: '10px 10px 10px 2px', 
-                          background: 'rgba(255,255,255,0.04)', 
-                          border: '1px solid var(--border-glass)', 
-                          fontSize: '9.5px', 
+                        <div style={{
+                          padding: '8px 12px',
+                          borderRadius: '10px 10px 10px 2px',
+                          background: 'rgba(255,255,255,0.04)',
+                          border: '1px solid var(--border-glass)',
+                          fontSize: '9.5px',
                           color: 'var(--text-secondary)',
                           lineHeight: '1.45',
                           animation: 'bubbleFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards'
                         }}>
-                          This codebase uses a React client communication layer connecting to an Express + MongoDB database server. <br/><br/>
+                          This codebase uses a React client communication layer connecting to an Express + MongoDB database server. <br /><br />
                           Primary modules are <strong>InteractiveGraph</strong> and <strong>useRepoApi</strong> for background file parsing.
                         </div>
                       )}
@@ -725,12 +725,12 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
                   {demoStep >= 8 && (
                     <>
                       {/* User Bubble 2 */}
-                      <div style={{ 
-                        padding: '8px 12px', 
-                        borderRadius: '10px 10px 2px 10px', 
-                        background: 'rgba(124, 58, 237, 0.15)', 
-                        border: '1px solid rgba(124, 58, 237, 0.25)', 
-                        fontSize: '9.5px', 
+                      <div style={{
+                        padding: '8px 12px',
+                        borderRadius: '10px 10px 2px 10px',
+                        background: 'rgba(124, 58, 237, 0.15)',
+                        border: '1px solid rgba(124, 58, 237, 0.25)',
+                        fontSize: '9.5px',
                         color: '#c084fc',
                         alignSelf: 'flex-end',
                         animation: 'bubbleFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
@@ -740,25 +740,25 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
 
                       {/* AI Loading 2 */}
                       {demoStep === 9 && (
-                        <div style={{ 
-                          padding: '8px 12px', 
-                          borderRadius: '10px 10px 10px 2px', 
-                          background: 'rgba(255,255,255,0.02)', 
-                          border: '1px solid var(--border-glass)', 
-                          fontSize: '9.5px', 
+                        <div style={{
+                          padding: '8px 12px',
+                          borderRadius: '10px 10px 10px 2px',
+                          background: 'rgba(255,255,255,0.02)',
+                          border: '1px solid var(--border-glass)',
+                          fontSize: '9.5px',
                           color: 'var(--text-secondary)',
                           display: 'flex',
                           alignItems: 'center',
                           gap: '8px',
                           animation: 'bubbleFadeIn 0.3s cubic-bezier(0.16, 1, 0.3, 1) forwards'
                         }}>
-                          <div style={{ 
-                            width: '8px', 
-                            height: '8px', 
-                            borderRadius: '50%', 
-                            border: '1.5px solid transparent', 
-                            borderTopColor: 'var(--color-secondary)', 
-                            animation: 'spin 1s linear infinite' 
+                          <div style={{
+                            width: '8px',
+                            height: '8px',
+                            borderRadius: '50%',
+                            border: '1.5px solid transparent',
+                            borderTopColor: 'var(--color-secondary)',
+                            animation: 'spin 1s linear infinite'
                           }} />
                           Thinking...
                         </div>
@@ -766,12 +766,12 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
 
                       {/* AI Response 2 */}
                       {demoStep >= 10 && (
-                        <div style={{ 
-                          padding: '8px 12px', 
-                          borderRadius: '10px 10px 10px 2px', 
-                          background: 'rgba(255,255,255,0.04)', 
-                          border: '1px solid var(--border-glass)', 
-                          fontSize: '9.5px', 
+                        <div style={{
+                          padding: '8px 12px',
+                          borderRadius: '10px 10px 10px 2px',
+                          background: 'rgba(255,255,255,0.04)',
+                          border: '1px solid var(--border-glass)',
+                          fontSize: '9.5px',
                           color: 'var(--text-secondary)',
                           lineHeight: '1.45',
                           animation: 'bubbleFadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards'
@@ -783,12 +783,12 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
                   )}
                 </div>
               </div>
-              
+
               {/* Prompt Input bar with Typing placeholder */}
-              <div style={{ 
-                height: '32px', 
-                background: 'rgba(0,0,0,0.18)', 
-                border: '1px solid var(--border-glass)', 
+              <div style={{
+                height: '32px',
+                background: 'rgba(0,0,0,0.18)',
+                border: '1px solid var(--border-glass)',
                 borderRadius: '8px',
                 padding: '0 10px',
                 display: 'flex',
@@ -801,10 +801,10 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
                 {demoStep === 4 ? (
                   <>
                     <span>{typedText}</span>
-                    <span style={{ 
-                      display: 'inline-block', 
-                      width: '1px', 
-                      height: '11px', 
+                    <span style={{
+                      display: 'inline-block',
+                      width: '1px',
+                      height: '11px',
                       background: 'var(--color-secondary)',
                       marginLeft: '2px',
                       animation: 'blink 0.8s infinite'
@@ -815,10 +815,10 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
                 ) : demoStep === 8 ? (
                   <>
                     <span>{typedText}</span>
-                    <span style={{ 
-                      display: 'inline-block', 
-                      width: '1px', 
-                      height: '11px', 
+                    <span style={{
+                      display: 'inline-block',
+                      width: '1px',
+                      height: '11px',
                       background: 'var(--color-secondary)',
                       marginLeft: '2px',
                       animation: 'blink 0.8s infinite'
@@ -1017,7 +1017,7 @@ export default function MarketingPage({ theme, onToggleTheme, onGetStarted }) {
           <p style={{ fontSize: '13px', lineHeight: '1.6', color: 'var(--text-secondary)', marginBottom: '24px' }}>
             We enforce strict controls on analyzing repositories. Cloning and parsing run in sandboxed ephemeral paths with strict boundaries (max 50MB / 500 files limits) to avoid local host server compromises.
           </p>
-          <button 
+          <button
             onClick={onGetStarted}
             className="btn-glow-primary"
             style={{
