@@ -42,6 +42,20 @@ class FallbackChatModel {
 }
 
 /**
+ * Filters out placeholder strings from environment config,
+ * returning null if the key is a template default.
+ */
+const cleanKey = (key) => {
+  if (!key) return null;
+  const k = key.trim();
+  const lower = k.toLowerCase();
+  if (lower.includes('your_') || lower.includes('key_here') || lower.includes('placeholder')) {
+    return null;
+  }
+  return k;
+};
+
+/**
  * Checks if LLM API Keys are configured in the environment or passed by user.
  * @param {object} userKeys Optional custom API keys from client
  * @returns {{hasKey: boolean, provider: string, key: string}}
@@ -52,13 +66,13 @@ const getLLMConfig = (userKeys) => {
   let key = null;
 
   if (provider === 'google') {
-    key = (userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY;
+    key = cleanKey((userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY);
     if (key) hasKey = true;
   } else if (provider === 'openai') {
-    key = (userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY;
+    key = cleanKey((userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY);
     if (key) hasKey = true;
   } else if (provider === 'anthropic') {
-    key = (userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY;
+    key = cleanKey((userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY);
     if (key) hasKey = true;
   }
 
@@ -74,7 +88,7 @@ const initChatModel = (userKeys) => {
 
   try {
     if (provider === 'openai') {
-      const key = (userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY;
+      const key = cleanKey((userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY);
       if (!key) return null;
       return new ChatOpenAI({
         openAIApiKey: key,
@@ -82,7 +96,7 @@ const initChatModel = (userKeys) => {
         temperature: 0.2,
       });
     } else if (provider === 'google') {
-      const key = (userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY;
+      const key = cleanKey((userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY);
       if (!key) return null;
       return new ChatGoogleGenerativeAI({
         apiKey: key,
@@ -91,14 +105,14 @@ const initChatModel = (userKeys) => {
       });
     } else {
       // provider === 'anthropic' (default)
-      const primaryKey = (userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY;
+      const primaryKey = cleanKey((userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY);
       const primaryModel = primaryKey ? new ChatAnthropic({
         apiKey: primaryKey,
         model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-latest',
         temperature: 0.2,
       }) : null;
 
-      const geminiKey = (userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY;
+      const geminiKey = cleanKey((userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY);
       const fallbackModel = geminiKey ? new ChatGoogleGenerativeAI({
         apiKey: geminiKey,
         modelName: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
@@ -121,7 +135,7 @@ const initChatModel = (userKeys) => {
  */
 const initEmbeddings = (userKeys) => {
   try {
-    const geminiKey = (userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY;
+    const geminiKey = cleanKey((userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY);
     if (geminiKey) {
       return new GoogleGenerativeAIEmbeddings({
         apiKey: geminiKey,
@@ -129,7 +143,7 @@ const initEmbeddings = (userKeys) => {
       });
     }
 
-    const openaiKey = (userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY;
+    const openaiKey = cleanKey((userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY);
     if (openaiKey) {
       return new OpenAIEmbeddings({
         openAIApiKey: openaiKey,
