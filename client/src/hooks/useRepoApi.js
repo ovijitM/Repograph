@@ -23,6 +23,7 @@ export function useRepoApi() {
     // Include Bring Your Own Key headers if available
     headers['x-gemini-key'] = localStorage.getItem('repograph_gemini_api_key') || '';
     headers['x-openai-key'] = localStorage.getItem('repograph_openai_api_key') || '';
+    headers['x-anthropic-key'] = localStorage.getItem('repograph_anthropic_api_key') || '';
     headers['x-llm-provider'] = localStorage.getItem('repograph_llm_provider') || '';
 
     return headers;

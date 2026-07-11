@@ -19,6 +19,7 @@ export const chatRepo = async (req, res) => {
     const userKeys = {
       geminiKey: req.headers['x-gemini-key'],
       openaiKey: req.headers['x-openai-key'],
+      anthropicKey: req.headers['x-anthropic-key'],
       provider: req.headers['x-llm-provider']
     };
 

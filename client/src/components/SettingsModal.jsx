@@ -5,8 +5,10 @@ export default function SettingsModal({ isOpen, onClose, theme }) {
   const [provider, setProvider] = useState('google');
   const [geminiKey, setGeminiKey] = useState('');
   const [openaiKey, setOpenaiKey] = useState('');
+  const [anthropicKey, setAnthropicKey] = useState('');
   const [showGemini, setShowGemini] = useState(false);
   const [showOpenai, setShowOpenai] = useState(false);
+  const [showAnthropic, setShowAnthropic] = useState(false);
   const [saveStatus, setSaveStatus] = useState(''); // '', 'saved'
 
   useEffect(() => {
@@ -14,6 +16,7 @@ export default function SettingsModal({ isOpen, onClose, theme }) {
       setProvider(localStorage.getItem('repograph_llm_provider') || 'google');
       setGeminiKey(localStorage.getItem('repograph_gemini_api_key') || '');
       setOpenaiKey(localStorage.getItem('repograph_openai_api_key') || '');
+      setAnthropicKey(localStorage.getItem('repograph_anthropic_api_key') || '');
       setSaveStatus('');
     }
   }, [isOpen]);
@@ -24,6 +27,7 @@ export default function SettingsModal({ isOpen, onClose, theme }) {
     localStorage.setItem('repograph_llm_provider', provider);
     localStorage.setItem('repograph_gemini_api_key', geminiKey.trim());
     localStorage.setItem('repograph_openai_api_key', openaiKey.trim());
+    localStorage.setItem('repograph_anthropic_api_key', anthropicKey.trim());
     
     setSaveStatus('saved');
     setTimeout(() => {
@@ -208,7 +212,7 @@ export default function SettingsModal({ isOpen, onClose, theme }) {
                 AI Provider
               </label>
               <div style={{ display: 'flex', gap: '10px' }}>
-                {['google', 'openai'].map((p) => (
+                {['google', 'openai', 'anthropic'].map((p) => (
                   <button
                     key={p}
                     onClick={() => setProvider(p)}
@@ -226,7 +230,7 @@ export default function SettingsModal({ isOpen, onClose, theme }) {
                       justifyContent: 'center'
                     }}
                   >
-                    {p === 'google' ? 'Google Gemini' : 'OpenAI GPT'}
+                    {p === 'google' ? 'Google Gemini' : p === 'openai' ? 'OpenAI GPT' : 'Anthropic Claude'}
                   </button>
                 ))}
               </div>
@@ -287,6 +291,61 @@ export default function SettingsModal({ isOpen, onClose, theme }) {
               </div>
             )}
 
+            {/* Optional Fallback Claude API Key Input when Gemini is Selected */}
+            {provider === 'google' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '4px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                    Fallback Claude API Key (Optional)
+                  </label>
+                  <a 
+                    href="https://console.anthropic.com/" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    style={{
+                      fontSize: '10px',
+                      color: 'var(--color-secondary)',
+                      textDecoration: 'underline',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <HelpCircle size={12} /> Get API Key
+                  </a>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showAnthropic ? 'text' : 'password'}
+                    value={anthropicKey}
+                    onChange={(e) => setAnthropicKey(e.target.value)}
+                    placeholder="sk-ant-... (used as fallback if Gemini fails)"
+                    className="input-credential"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAnthropic(!showAnthropic)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'rgba(255, 255, 255, 0.40)',
+                      cursor: 'pointer',
+                      border: 'none',
+                      background: 'none',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {showAnthropic ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* OpenAI API Key Input */}
             {provider === 'openai' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -337,6 +396,61 @@ export default function SettingsModal({ isOpen, onClose, theme }) {
                     }}
                   >
                     {showOpenai ? <EyeOff size={15} /> : <Eye size={15} />}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Anthropic API Key Input */}
+            {provider === 'anthropic' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <label style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                    Anthropic API Key
+                  </label>
+                  <a 
+                    href="https://console.anthropic.com/" 
+                    target="_blank" 
+                    rel="noreferrer"
+                    style={{
+                      fontSize: '10px',
+                      color: 'var(--color-secondary)',
+                      textDecoration: 'underline',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px'
+                    }}
+                  >
+                    <HelpCircle size={12} /> Get API Key
+                  </a>
+                </div>
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showAnthropic ? 'text' : 'password'}
+                    value={anthropicKey}
+                    onChange={(e) => setAnthropicKey(e.target.value)}
+                    placeholder="sk-ant-..."
+                    className="input-credential"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowAnthropic(!showAnthropic)}
+                    style={{
+                      position: 'absolute',
+                      right: '12px',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      color: 'rgba(255, 255, 255, 0.40)',
+                      cursor: 'pointer',
+                      border: 'none',
+                      background: 'none',
+                      padding: 0,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                  >
+                    {showAnthropic ? <EyeOff size={15} /> : <Eye size={15} />}
                   </button>
                 </div>
               </div>

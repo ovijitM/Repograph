@@ -1,5 +1,6 @@
 import { ChatOpenAI, OpenAIEmbeddings } from '@langchain/openai';
 import { ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings } from '@langchain/google-genai';
+import { ChatAnthropic } from '@langchain/anthropic';
 import { MemoryVectorStore } from 'langchain/vectorstores/memory';
 import { Document } from '@langchain/core/documents';
 import mongoose from 'mongoose';
@@ -8,6 +9,37 @@ import FileNode from '../models/FileNode.js';
 // In-memory cache to store active vector stores for each repository ID
 // Key: repoId (string), Value: MemoryVectorStore instance
 const vectorStoreCache = new Map();
+
+/**
+ * Custom wrapper for Fallback Chat Model.
+ * Attempts execution with a primary model (Gemini) first, and falls back to a fallback model (Claude) on failure.
+ */
+class FallbackChatModel {
+  constructor(primaryModel, fallbackModel) {
+    this.primaryModel = primaryModel;
+    this.fallbackModel = fallbackModel;
+  }
+
+  async invoke(input, options) {
+    if (!this.primaryModel) {
+      if (this.fallbackModel) {
+        console.log("No primary model initialized. Using fallback Chat model (Claude)...");
+        return await this.fallbackModel.invoke(input, options);
+      }
+      throw new Error("No Chat model initialized.");
+    }
+
+    try {
+      return await this.primaryModel.invoke(input, options);
+    } catch (err) {
+      if (this.fallbackModel) {
+        console.warn(`Primary Chat model (Gemini) failed: ${err.message}. Falling back to Claude...`);
+        return await this.fallbackModel.invoke(input, options);
+      }
+      throw err;
+    }
+  }
+}
 
 /**
  * Checks if LLM API Keys are configured in the environment or passed by user.
@@ -25,6 +57,9 @@ const getLLMConfig = (userKeys) => {
   } else if (provider === 'openai') {
     key = (userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY;
     if (key) hasKey = true;
+  } else if (provider === 'anthropic') {
+    key = (userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY;
+    if (key) hasKey = true;
   }
 
   return { hasKey, provider, key };
@@ -35,22 +70,43 @@ const getLLMConfig = (userKeys) => {
  * @param {object} userKeys Optional custom API keys from client
  */
 const initChatModel = (userKeys) => {
-  const { hasKey, provider, key } = getLLMConfig(userKeys);
-  if (!hasKey) return null;
+  const provider = (userKeys && userKeys.provider) || process.env.LLM_PROVIDER || 'google';
 
   try {
     if (provider === 'openai') {
+      const key = (userKeys && userKeys.openaiKey) || process.env.OPENAI_API_KEY;
+      if (!key) return null;
       return new ChatOpenAI({
         openAIApiKey: key,
         modelName: process.env.OPENAI_MODEL || 'gpt-4o-mini',
         temperature: 0.2,
       });
-    } else {
-      return new ChatGoogleGenerativeAI({
+    } else if (provider === 'anthropic') {
+      const key = (userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY;
+      if (!key) return null;
+      return new ChatAnthropic({
         apiKey: key,
-        modelName: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+        model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20240620',
         temperature: 0.2,
       });
+    } else {
+      // provider === 'google' (default)
+      const geminiKey = (userKeys && userKeys.geminiKey) || process.env.GEMINI_API_KEY;
+      const primaryModel = geminiKey ? new ChatGoogleGenerativeAI({
+        apiKey: geminiKey,
+        modelName: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+        temperature: 0.2,
+      }) : null;
+
+      const anthropicKey = (userKeys && userKeys.anthropicKey) || process.env.ANTHROPIC_API_KEY;
+      const fallbackModel = anthropicKey ? new ChatAnthropic({
+        apiKey: anthropicKey,
+        model: process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20240620',
+        temperature: 0.2,
+      }) : null;
+
+      if (!primaryModel && !fallbackModel) return null;
+      return new FallbackChatModel(primaryModel, fallbackModel);
     }
   } catch (err) {
     console.error('Failed to initialize Chat model:', err);
